@@ -30,8 +30,8 @@ class NetwaveDevice:
     """
 
     def __init__(self, host: str, port: int) -> None:
-        self.host = host
-        self.port = port
+        self._host = host
+        self._port = port
 
         self._session = aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(limit=8192),
@@ -39,10 +39,10 @@ class NetwaveDevice:
         )
 
     def __str__(self) -> str:
-        return f"{self.host}:{self.port}"
+        return f"{self._host}:{self._port}"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(host={self.host!r}, port={self.port!r})"
+        return f"{self.__class__.__name__}(host={self._host!r}, port={self._port!r})"
 
     async def __aenter__(self) -> NetwaveDevice:
         return self
@@ -86,14 +86,14 @@ class NetwaveDevice:
 
         credentials = [
             DeviceCredentials(
-                self.host, self.port, credentials[0].string, credentials[1].string
+                self._host, self._port, credentials[0].string, credentials[1].string
             )
             for credentials in possible_credentials
         ]
 
         credentials.extend(
             [
-                DeviceCredentials(self.host, self.port, credentials[0].string)
+                DeviceCredentials(self._host, self._port, credentials[0].string)
                 for credentials in possible_credentials
             ]
         )
@@ -180,7 +180,7 @@ class NetwaveDevice:
                 or response.headers.get("Server") != "Netwave IP Camera"
             ):
                 logger.error("[%s] Device is not vulnerable", self)
-                return DeviceCredentials(self.host, self.port)
+                return DeviceCredentials(self._host, self._port)
 
             logger.info("[%s] Dumping memory...", self)
 
@@ -218,10 +218,10 @@ class NetwaveDevice:
                     "[%s] Could not find valid credentials in memory dump", self
                 )
 
-                return DeviceCredentials(self.host, self.port)
+                return DeviceCredentials(self._host, self._port)
 
             logger.error("[%s] Could not find device ID in memory dump", self)
-            return DeviceCredentials(self.host, self.port)
+            return DeviceCredentials(self._host, self._port)
 
     @retry
     async def _check_credentials(self, credentials: DeviceCredentials) -> bool:
@@ -250,6 +250,16 @@ class NetwaveDevice:
                 return True
 
             return False
+
+    @property
+    def host(self) -> str:
+        """Return the host of the Netwave IP camera."""
+        return self._host
+
+    @property
+    def port(self) -> int:
+        """Return the port of the Netwave IP camera."""
+        return self._port
 
     async def close(self) -> None:
         """Close the session."""
@@ -303,11 +313,11 @@ class NetwaveDevice:
             device_id = device_id or await self.get_device_id()
         except (asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get device ID", self)
-            return DeviceCredentials(self.host, self.port)
+            return DeviceCredentials(self._host, self._port)
 
         if device_id is None:
             logger.error("[%s] Could not get device ID", self)
-            return DeviceCredentials(self.host, self.port)
+            return DeviceCredentials(self._host, self._port)
 
         logger.info("[%s] Device ID: %s", self, device_id)
 
@@ -317,4 +327,4 @@ class NetwaveDevice:
             )
         except (asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get credentials", self)
-            return DeviceCredentials(self.host, self.port)
+            return DeviceCredentials(self._host, self._port)
