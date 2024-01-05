@@ -1,4 +1,4 @@
-"""A module for interacting with a Netwave IP camera."""
+"""A module for interacting with Netwave IP cameras."""
 from __future__ import annotations
 
 import asyncio

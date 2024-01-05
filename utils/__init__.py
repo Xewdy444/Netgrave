@@ -1,4 +1,4 @@
-"""Utility functions and classes for netgrave."""
+"""Utility functions and classes for Netgrave."""
 from .dataclasses import DeviceCredentials, ExtractedString
 from .netwave_device import NetwaveDevice
 from .utils import Args, CoroutineExecutor, format_hosts
