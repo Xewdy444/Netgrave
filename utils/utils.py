@@ -5,9 +5,11 @@ import argparse
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any, Coroutine, List, Optional, Set, Tuple
+from typing import Any, Coroutine, List, Optional, Set, Tuple, TypeVar
 
 from pydantic import BaseModel, FilePath, PositiveInt, model_validator
+
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
@@ -98,18 +100,18 @@ class CoroutineExecutor:
 
         self._tasks.clear()
 
-    async def submit(self, coro: Coroutine[Any, Any, Any]) -> Any:
+    async def submit(self, coro: Coroutine[Any, Any, T]) -> T:
         """
         Submit a coroutine to be executed
 
         Parameters
         ----------
-        coro : Coroutine[Any, Any, Any]
+        coro : Coroutine[Any, Any, T]
             The coroutine to execute.
 
         Returns
         -------
-        Any
+        T
             The return value of the coroutine.
         """
         async with self._semaphore:
