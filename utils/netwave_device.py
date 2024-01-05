@@ -38,6 +38,8 @@ class NetwaveDevice:
             timeout=aiohttp.ClientTimeout(30),
         )
 
+        self._empty_credentials = DeviceCredentials(host, port)
+
     def __str__(self) -> str:
         return f"{self._host}:{self._port}"
 
@@ -180,7 +182,7 @@ class NetwaveDevice:
                 or response.headers.get("Server") != "Netwave IP Camera"
             ):
                 logger.error("[%s] Device is not vulnerable", self)
-                return DeviceCredentials(self._host, self._port)
+                return self._empty_credentials
 
             logger.info("[%s] Dumping memory...", self)
 
@@ -218,10 +220,10 @@ class NetwaveDevice:
                     "[%s] Could not find valid credentials in memory dump", self
                 )
 
-                return DeviceCredentials(self._host, self._port)
+                return self._empty_credentials
 
             logger.error("[%s] Could not find device ID in memory dump", self)
-            return DeviceCredentials(self._host, self._port)
+            return self._empty_credentials
 
     @retry
     async def _check_credentials(self, credentials: DeviceCredentials) -> bool:
@@ -313,11 +315,11 @@ class NetwaveDevice:
             device_id = device_id or await self.get_device_id()
         except (asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get device ID", self)
-            return DeviceCredentials(self._host, self._port)
+            return self._empty_credentials
 
         if device_id is None:
             logger.error("[%s] Could not get device ID", self)
-            return DeviceCredentials(self._host, self._port)
+            return self._empty_credentials
 
         logger.info("[%s] Device ID: %s", self, device_id)
 
@@ -327,4 +329,4 @@ class NetwaveDevice:
             )
         except (asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get credentials", self)
-            return DeviceCredentials(self._host, self._port)
+            return self._empty_credentials
