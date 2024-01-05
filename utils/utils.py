@@ -102,7 +102,7 @@ class CoroutineExecutor:
 
     async def submit(self, coro: Coroutine[Any, Any, T]) -> T:
         """
-        Submit a coroutine to be executed
+        Submit a coroutine to be executed.
 
         Parameters
         ----------
