@@ -32,7 +32,7 @@ class NetwaveDevice:
         return f"{self.host}:{self.port}"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(host={self.host}, port={self.port})"
+        return f"{self.__class__.__name__}(host={self.host!r}, port={self.port!r})"
 
     async def __aenter__(self) -> NetwaveDevice:
         return self

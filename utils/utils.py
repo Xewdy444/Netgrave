@@ -79,7 +79,7 @@ class CoroutineExecutor:
         self._tasks: Set[asyncio.Task] = set()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(max_tasks={self._max_tasks})"
+        return f"{self.__class__.__name__}(max_tasks={self._max_tasks!r})"
 
     def __len__(self) -> int:
         return len(self._tasks)

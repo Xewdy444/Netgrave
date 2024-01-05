@@ -23,7 +23,7 @@ class ZoomEye:
         self._session.headers["API-KEY"] = api_key
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(api_key={self._api_key})"
+        return f"{self.__class__.__name__}(api_key={self._api_key!r})"
 
     async def __aenter__(self) -> ZoomEye:
         return self
