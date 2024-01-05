@@ -78,7 +78,7 @@ class NetwaveDevice:
         filtered_strings = self._filter_strings(device_id, strings)
 
         if not filtered_strings:
-            return None
+            return []
 
         possible_credentials = list(itertools.permutations(filtered_strings, 2))
 
@@ -291,6 +291,8 @@ class NetwaveDevice:
 
             device_id = device_id_match.group(1)
             return device_id
+
+        return None
 
     async def get_credentials(
         self, device_id: Optional[str] = None, *, timeout: int = 300
