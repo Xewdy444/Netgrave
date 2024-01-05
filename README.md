@@ -2,7 +2,7 @@
 A tool for retrieving login credentials from Netwave IP cameras using a memory dump vulnerability (CVE-2018-17240). This project was inspired by [expcamera](https://github.com/vanpersiexp/expcamera) and offers performance and efficiency improvements. This tool works for all platforms as it does not use any Linux CLI tools through shell commands like expcamera does.
 
 ## CVE-2018-17240
-Some Netwave IP Cameras have a publicly exposed `//proc/kcore` path that allows unauthenticated users to retrieve the memory dump of the device. On Linux systems, `/proc/kcore` mirrors the physical memory of the system, allowing access to its contents for analysis. 
+Some Netwave IP Cameras have a publicly exposed `//proc/kcore` path that allows unauthenticated users to retrieve the memory dump of the device, exposing sensitive information such as login credentials. On Linux systems, `/proc/kcore` mirrors the physical memory of the system, allowing access to its contents for analysis. 
 
 ---
 
