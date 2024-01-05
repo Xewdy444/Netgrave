@@ -1,3 +1,4 @@
+"""A module for interacting with a Netwave IP camera."""
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +18,16 @@ logger = logging.getLogger(__name__)
 
 
 class NetwaveDevice:
-    """A class for interacting with a Netwave IP camera."""
+    """
+    A class for interacting with a Netwave IP camera.
+
+    Parameters
+    ----------
+    host : str
+        The host of the Netwave IP camera.
+    port : int
+        The port of the Netwave IP camera.
+    """
 
     def __init__(self, host: str, port: int) -> None:
         self.host = host
@@ -51,7 +61,7 @@ class NetwaveDevice:
         device_id : str
             The device ID of the Netwave IP camera.
         memory : bytes
-            The memory dump of the Netwave IP camera.
+            The memory data of the Netwave IP camera.
 
         Returns
         -------
@@ -154,7 +164,7 @@ class NetwaveDevice:
         device_id : str
             The device ID of the Netwave IP camera.
         timeout : int, optional
-            The timeout in seconds for retrieving the credentials from the memory
+            The timeout in seconds for retrieving possible credentials from the memory
             dump, by default 300.
 
         Returns
@@ -181,7 +191,8 @@ class NetwaveDevice:
                     continue
 
                 logger.info(
-                    "[%s] Found device ID in memory dump, looking for valid credentials...",
+                    "[%s] Found device ID in memory dump, "
+                    "looking for valid credentials...",
                     self,
                 )
 
@@ -278,8 +289,8 @@ class NetwaveDevice:
         Parameters
         ----------
         device_id : str, optional
-            The device ID of the Netwave IP camera.
-            If None, the device ID will be retrieved, by default None.
+            The device ID of the Netwave IP camera, by default None.
+            If None, the device ID will be retrieved.
         timeout : int, optional
             The timeout in seconds for retrieving the credentials, by default 300.
 

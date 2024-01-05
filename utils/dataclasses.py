@@ -1,3 +1,4 @@
+"""A module for dataclasses used by the NetwaveDevice class."""
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
@@ -26,7 +27,7 @@ class DeviceCredentials:
 
 @dataclass
 class ExtractedString:
-    """A class for representing a string that was extracted from a memory dump."""
+    """A class for representing a string that was extracted from binary data."""
 
     string: str
     encoding: str

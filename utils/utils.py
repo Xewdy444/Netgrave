@@ -1,3 +1,4 @@
+"""Utility functions and classes."""
 from __future__ import annotations
 
 import argparse
@@ -50,7 +51,7 @@ class Args(BaseModel):
     @model_validator(mode="after")
     def validate_args(self) -> Args:
         """
-        Ensure that a host, file, or ZoomEye API key was specified.
+        Ensure that a host, file, or ZoomEye API key was provided.
 
         Returns
         -------
