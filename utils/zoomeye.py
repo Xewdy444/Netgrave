@@ -86,8 +86,7 @@ class ZoomEye:
         List[Tuple[str, int]]
             The list of hosts.
         """
-        if count < 1:
-            raise ValueError("Count must be at least 1.")
+        count = max(int(count), 1)
 
         tasks = [
             asyncio.create_task(self.search(query, page=page))

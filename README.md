@@ -2,7 +2,7 @@
 A tool for retrieving login credentials from Netwave IP cameras using a memory dump vulnerability (CVE-2018-17240). This project was inspired by [expcamera](https://github.com/vanpersiexp/expcamera) and offers performance and efficiency improvements. This tool works for all platforms as it does not use any Linux CLI tools through shell commands like expcamera does.
 
 ## CVE-2018-17240
-Some Netwave IP Cameras have a publicly exposed `//proc/kcore` path that allows unauthenticated users to retrieve the memory dump of the device, exposing sensitive information such as login credentials. On Linux systems, `/proc/kcore` mirrors the physical memory of the system, allowing access to its contents for analysis. 
+On Linux systems, the `/proc/kcore` file path mirrors the physical memory of the system, allowing access to its contents for analysis. Some Netwave IP cameras expose this path publicly via its web server, allowing unauthenticated users to retrieve the memory dump of the device, exposing sensitive information such as login credentials.
 
 ---
 
@@ -17,7 +17,7 @@ The first way is to specify a single host using the `--host` option. This option
 ### `--file`
 The second way is to specify a file containing a list of hosts in the `ip:port` format using the `--file` option.
 ### `--censys`
-The third way is to retrieve hosts from the Censys API using the `--censys` option. This option requires the `CENSYS_AUTH` environment variable to be set in the format `API_ID:SECRET`.
+The third way is to retrieve hosts from the Censys API using the `--censys` option. This option requires the `CENSYS_API_ID` and `CENSYS_SECRET` environment variables to be set.
 
 ### `--zoomeye`
 The fourth way is to retrieve hosts from the ZoomEye API using the `--zoomeye` option. This option requires the `ZOOMEYE_API_KEY` environment variable to be set.
@@ -35,7 +35,7 @@ Options:
   -h, --help            show this help message and exit
   --host HOST           A host to check, can be specified multiple times
   -f, --file FILE       A file containing the hosts to check
-  --censys              Retrieve hosts from the Censys API using the API ID and secret specified with the CENSYS_AUTH environment variable in the format API_ID:SECRET
+  --censys              Retrieve hosts from the Censys API using the API ID and secret specified with the CENSYS_API_ID and CENSYS_SECRET environment variables
   --zoomeye             Retrieve hosts from the ZoomEye API using the API key specified with the ZOOMEYE_API_KEY environment variable
   -n, --number NUMBER   The number of hosts to retrieve from Censys or ZoomEye, by default 500
   -c, --concurrent CONCURRENT

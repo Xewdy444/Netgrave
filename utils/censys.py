@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
 
 import aiohttp
 
@@ -13,6 +13,15 @@ class CensysCredentials:
 
     api_id: str
     secret: str
+
+
+class Service(TypedDict):
+    """A class for representing a service."""
+
+    extended_service_name: str
+    service_name: str
+    transport_protocol: str
+    port: int
 
 
 class Censys:
@@ -78,7 +87,13 @@ class Censys:
 
             return await response.json()
 
-    async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
+    async def get_hosts(
+        self,
+        query: str,
+        *,
+        count: int = 500,
+        service_filter: Optional[Callable[[Service], bool]] = None,
+    ) -> List[Tuple[str, int]]:
         """
         Get hosts from Censys.
 
@@ -88,15 +103,17 @@ class Censys:
             The query to search for.
         count : int, optional
             The number of hosts to retrieve, by default 500.
+        service_filter : Optional[Callable[[Service], bool]], optional
+            A function to filter the services, by default None.
+            The function should return True if the service should be included
+            in the results.
 
         Returns
         -------
         List[Tuple[str, int]]
             The list of hosts.
         """
-        if count < 1:
-            raise ValueError("Count must be at least 1.")
-
+        count = max(int(count), 1)
         hosts = set()
         cursor = None
 
@@ -109,6 +126,9 @@ class Censys:
 
             for host in response["result"]["hits"]:
                 for service in host["services"]:
+                    if service_filter is not None and not service_filter(service):
+                        continue
+
                     hosts.add((host["ip"], service["port"]))
 
                     if len(hosts) == count:

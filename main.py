@@ -43,8 +43,8 @@ async def main() -> None:
         "--censys",
         action="store_true",
         help="Retrieve hosts from the Censys API "
-        "using the API ID and secret specified with the CENSYS_AUTH environment variable "
-        "in the format API_ID:SECRET",
+        "using the API ID and secret specified with the CENSYS_API_ID and "
+        "CENSYS_SECRET environment variables",
     )
 
     source_group.add_argument(
@@ -105,7 +105,10 @@ async def main() -> None:
 
         async with Censys(args.censys) as censys:
             hosts = await censys.get_hosts(
-                "Netwave and services.extended_service_name: HTTP", count=args.number
+                "Netwave and services.extended_service_name: HTTP",
+                count=args.number,
+                service_filter=lambda service: service["extended_service_name"]
+                == "HTTP",
             )
     elif args.zoomeye is not None:
         logger.info("Retrieving hosts from ZoomEye...")
