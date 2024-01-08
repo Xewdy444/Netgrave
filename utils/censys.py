@@ -16,7 +16,7 @@ class CensysCredentials:
 
 
 class Service(TypedDict):
-    """A class for representing a service."""
+    """A dictionary of service information."""
 
     extended_service_name: str
     service_name: str
@@ -118,7 +118,7 @@ class Censys:
         cursor = None
 
         while len(hosts) < count:
-            per_page = min(count - len(hosts), 100)
+            per_page = min(count - len(hosts), 100) if service_filter is None else 100
             response = await self.search(query, cursor=cursor, per_page=per_page)
 
             if response is None:
