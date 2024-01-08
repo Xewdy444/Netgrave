@@ -281,7 +281,10 @@ class NetwaveDevice:
             if response.status != 200:
                 return None
 
-            text = await response.text()
+            try:
+                text = await response.text()
+            except UnicodeDecodeError:
+                return None
 
         for line in text.splitlines():
             device_id_match = re.match(r"var id=[\"'](\w+)[\"'];", line)
@@ -315,7 +318,7 @@ class NetwaveDevice:
         """
         try:
             device_id = device_id or await self.get_device_id()
-        except (asyncio.TimeoutError, aiohttp.ClientError):
+        except (ConnectionError, TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get device ID", self)
             return self._empty_credentials
 
@@ -329,6 +332,6 @@ class NetwaveDevice:
             return await asyncio.wait_for(
                 self._get_credentials(device_id, timeout=timeout), timeout
             )
-        except (asyncio.TimeoutError, aiohttp.ClientError):
+        except (ConnectionError, TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get credentials", self)
             return self._empty_credentials

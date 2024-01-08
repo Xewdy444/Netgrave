@@ -4,10 +4,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 from pathlib import Path
 from typing import Any, Coroutine, List, Optional, Set, Tuple, TypeVar
 
 from pydantic import BaseModel, FilePath, PositiveInt, model_validator
+
+from .censys import CensysCredentials
+from .zoomeye import ZoomEyeCredentials
 
 T = TypeVar("T")
 
@@ -19,9 +23,10 @@ class Args(BaseModel):
 
     hosts: List[str]
     file: Optional[FilePath]
-    key: Optional[str]
+    censys: Optional[CensysCredentials]
+    zoomeye: Optional[ZoomEyeCredentials]
     output: Path
-    pages: PositiveInt
+    number: PositiveInt
     timeout: PositiveInt
     concurrent: PositiveInt
 
@@ -40,15 +45,36 @@ class Args(BaseModel):
         Args
             The Args instance.
         """
-        return cls(
-            hosts=args.hosts,
-            file=args.file,
-            key=args.key,
-            output=args.output,
-            pages=args.pages,
-            timeout=args.timeout,
-            concurrent=args.concurrent,
-        )
+        new_args = {
+            "hosts": args.hosts,
+            "file": args.file,
+            "censys": None,
+            "zoomeye": None,
+            "output": args.output,
+            "number": args.number,
+            "timeout": args.timeout,
+            "concurrent": args.concurrent,
+        }
+
+        if args.censys:
+            censys_auth = os.getenv("CENSYS_AUTH")
+
+            if censys_auth is None:
+                raise ValueError("You must set the CENSYS_AUTH environment variable.")
+
+            new_args["censys"] = CensysCredentials(*censys_auth.split(":"))
+
+        if args.zoomeye:
+            zoomeye_api_key = os.getenv("ZOOMEYE_API_KEY")
+
+            if zoomeye_api_key is None:
+                raise ValueError(
+                    "You must set the ZOOMEYE_API_KEY environment variable."
+                )
+
+            new_args["zoomeye"] = ZoomEyeCredentials(zoomeye_api_key)
+
+        return cls(**new_args)
 
     @model_validator(mode="after")
     def validate_args(self) -> Args:
@@ -60,8 +86,12 @@ class Args(BaseModel):
         Args
             The Args instance.
         """
-        if not self.hosts and all(value is None for value in (self.file, self.key)):
-            raise ValueError("You must specify a host, file, or ZoomEye API key.")
+        if not self.hosts and all(
+            value is None for value in (self.file, self.censys, self.zoomeye)
+        ):
+            raise ValueError(
+                "You must specify a host, file, Censys API ID and secret, or ZoomEye API key."
+            )
 
         return self
 

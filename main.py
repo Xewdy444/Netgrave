@@ -1,13 +1,12 @@
 import argparse
 import asyncio
 import logging
-import os
 
 from rich import traceback
 from rich.logging import RichHandler
 from rich_argparse import RichHelpFormatter
 
-from utils import Args, CoroutineExecutor, NetwaveDevice, ZoomEye, format_hosts
+from utils import Args, Censys, CoroutineExecutor, NetwaveDevice, ZoomEye, format_hosts
 
 logger = logging.getLogger(__name__)
 traceback.install(show_locals=True)
@@ -41,28 +40,34 @@ async def main() -> None:
     )
 
     source_group.add_argument(
-        "-k",
-        "--key",
-        default=os.getenv("ZOOMEYE_API_KEY"),
-        type=str,
-        help="The ZoomEye API key to use, "
-        "by default the ZOOMEYE_API_KEY environment variable",
+        "--censys",
+        action="store_true",
+        help="Retrieve hosts from the Censys API "
+        "using the API ID and secret specified with the CENSYS_AUTH environment variable "
+        "in the format API_ID:SECRET",
+    )
+
+    source_group.add_argument(
+        "--zoomeye",
+        action="store_true",
+        help="Retrieve hosts from the ZoomEye API "
+        "using the API key specified with the ZOOMEYE_API_KEY environment variable",
     )
 
     parser.add_argument(
-        "-o",
-        "--output",
-        default="credentials.txt",
-        type=str,
-        help="The file to write the credentials to, by default credentials.txt",
-    )
-
-    parser.add_argument(
-        "-p",
-        "--pages",
-        default=20,
+        "-n",
+        "--number",
+        default=500,
         type=int,
-        help="The number of pages to search on ZoomEye, by default 20",
+        help="The number of hosts to retrieve from Censys or ZoomEye, by default 500",
+    )
+
+    parser.add_argument(
+        "-c",
+        "--concurrent",
+        default=50,
+        type=int,
+        help="The number of hosts to check concurrently, by default 50",
     )
 
     parser.add_argument(
@@ -75,11 +80,11 @@ async def main() -> None:
     )
 
     parser.add_argument(
-        "-c",
-        "--concurrent",
-        default=20,
-        type=int,
-        help="The number of hosts to check concurrently, by default 20",
+        "-o",
+        "--output",
+        default="credentials.txt",
+        type=str,
+        help="The file to write the credentials to, by default credentials.txt",
     )
 
     args = Args.from_args(parser.parse_args())
@@ -95,11 +100,18 @@ async def main() -> None:
         hosts = format_hosts(args.hosts)
     elif args.file is not None:
         hosts = format_hosts(args.file.read_text().splitlines())
-    elif args.key is not None:
+    elif args.censys is not None:
+        logger.info("Retrieving hosts from Censys...")
+
+        async with Censys(args.censys) as censys:
+            hosts = await censys.get_hosts(
+                "Netwave and services.extended_service_name: HTTP", count=args.number
+            )
+    elif args.zoomeye is not None:
         logger.info("Retrieving hosts from ZoomEye...")
 
-        async with ZoomEye(args.key) as zoomeye:
-            hosts = await zoomeye.get_hosts("Netwave", pages=args.pages)
+        async with ZoomEye(args.zoomeye) as zoomeye:
+            hosts = await zoomeye.get_hosts("Netwave", count=args.number)
 
     if not hosts:
         logger.error("Could not get any hosts from the specified source.")
