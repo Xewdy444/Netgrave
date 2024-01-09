@@ -80,26 +80,6 @@ class Args(BaseModel):
 
         return cls(**new_args)
 
-    @model_validator(mode="after")
-    def validate_args(self) -> Args:
-        """
-        Ensure that a host, file, or ZoomEye API key was provided.
-
-        Returns
-        -------
-        Args
-            The Args instance.
-        """
-        if not self.hosts and all(
-            value is None for value in (self.file, self.censys, self.zoomeye)
-        ):
-            raise ValueError(
-                "You must specify a host, file, Censys API ID and secret, "
-                "or ZoomEye API key."
-            )
-
-        return self
-
 
 class CoroutineExecutor:
     """

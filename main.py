@@ -19,7 +19,7 @@ async def main() -> None:
         formatter_class=RichHelpFormatter,
     )
 
-    source_group = parser.add_mutually_exclusive_group()
+    source_group = parser.add_mutually_exclusive_group(required=True)
 
     source_group.add_argument(
         "--host",
