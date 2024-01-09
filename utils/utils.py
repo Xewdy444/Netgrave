@@ -62,7 +62,8 @@ class Args(BaseModel):
 
             if censys_api_id is None or censys_secret is None:
                 raise ValueError(
-                    "You must set the CENSYS_API_ID and CENSYS_SECRET environment variables."
+                    "You must set the CENSYS_API_ID and CENSYS_SECRET "
+                    "environment variables."
                 )
 
             new_args["censys"] = CensysCredentials(censys_api_id, censys_secret)
@@ -93,7 +94,8 @@ class Args(BaseModel):
             value is None for value in (self.file, self.censys, self.zoomeye)
         ):
             raise ValueError(
-                "You must specify a host, file, Censys API ID and secret, or ZoomEye API key."
+                "You must specify a host, file, Censys API ID and secret, "
+                "or ZoomEye API key."
             )
 
         return self
