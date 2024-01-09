@@ -106,9 +106,9 @@ class CoroutineExecutor:
         return self
 
     async def __aexit__(self, *_: Any) -> None:
-        await self.close()
+        self.close()
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """Cancel all pending tasks."""
         for task in self._tasks:
             task.cancel()
@@ -131,7 +131,7 @@ class CoroutineExecutor:
         """
         async with self._semaphore:
             task = asyncio.create_task(coro)
-            task.add_done_callback(self._tasks.remove)
+            task.add_done_callback(self._tasks.discard)
             self._tasks.add(task)
             return await task
 
