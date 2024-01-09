@@ -44,7 +44,7 @@ async def main() -> None:
         action="store_true",
         help="Retrieve hosts from the Censys API "
         "using the API ID and secret specified with the CENSYS_API_ID and "
-        "CENSYS_SECRET environment variables",
+        "CENSYS_API_SECRET environment variables",
     )
 
     source_group.add_argument(

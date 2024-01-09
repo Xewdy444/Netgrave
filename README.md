@@ -17,7 +17,7 @@ The first way is to specify a single host using the `--host` option. This option
 ### `--file`
 The second way is to specify a file containing a list of hosts in the `ip:port` format using the `--file` option.
 ### `--censys`
-The third way is to retrieve hosts from the Censys API using the `--censys` option. This option requires the `CENSYS_API_ID` and `CENSYS_SECRET` environment variables to be set.
+The third way is to retrieve hosts from the Censys API using the `--censys` option. This option requires the `CENSYS_API_ID` and `CENSYS_API_SECRET` environment variables to be set.
 
 ### `--zoomeye`
 The fourth way is to retrieve hosts from the ZoomEye API using the `--zoomeye` option. This option requires the `ZOOMEYE_API_KEY` environment variable to be set.
@@ -35,7 +35,7 @@ Options:
   -h, --help            show this help message and exit
   --host HOST           A host to check, can be specified multiple times
   -f, --file FILE       A file containing the hosts to check
-  --censys              Retrieve hosts from the Censys API using the API ID and secret specified with the CENSYS_API_ID and CENSYS_SECRET environment variables
+  --censys              Retrieve hosts from the Censys API using the API ID and secret specified with the CENSYS_API_ID and CENSYS_API_SECRET environment variables
   --zoomeye             Retrieve hosts from the ZoomEye API using the API key specified with the ZOOMEYE_API_KEY environment variable
   -n, --number NUMBER   The number of hosts to retrieve from Censys or ZoomEye, by default 500
   -c, --concurrent CONCURRENT
