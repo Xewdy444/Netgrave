@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypedDict
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypedDict
 
 import aiohttp
 
@@ -114,7 +114,7 @@ class Censys:
             The list of hosts.
         """
         count = max(int(count), 1)
-        hosts = set()
+        hosts: Set[Tuple[str, int]] = set()
         cursor = None
 
         while len(hosts) < count:
