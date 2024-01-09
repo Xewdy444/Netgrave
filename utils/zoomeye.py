@@ -2,9 +2,18 @@
 from __future__ import annotations
 
 import asyncio
+import math
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
+
+
+@dataclass
+class ZoomEyeCredentials:
+    """A class for representing ZoomEye credentials."""
+
+    api_key: str
 
 
 class ZoomEye:
@@ -13,18 +22,18 @@ class ZoomEye:
 
     Parameters
     ----------
-    api_key : str
-        The ZoomEye API key to use.
+    credentials : ZoomEyeCredentials
+        The credentials to use for the API.
     """
 
-    def __init__(self, api_key: str) -> None:
-        self._api_key = api_key
+    def __init__(self, credentials: ZoomEyeCredentials) -> None:
+        self._credentials = credentials
 
         self._session = aiohttp.ClientSession()
-        self._session.headers["API-KEY"] = api_key
+        self._session.headers["API-KEY"] = credentials.api_key
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(api_key={self._api_key!r})"
+        return f"{self.__class__.__name__}(credentials={self._credentials!r})"
 
     async def __aenter__(self) -> ZoomEye:
         return self
@@ -44,7 +53,7 @@ class ZoomEye:
         ----------
         query : str
             The query to search for.
-        page : int
+        page : int, optional
             The page to search on, by default 1.
 
         Returns
@@ -53,14 +62,15 @@ class ZoomEye:
             The response from ZoomEye. Returns None if the page was not found.
         """
         async with self._session.get(
-            "https://api.zoomeye.org/host/search", params={"query": query, "page": page}
+            "https://api.zoomeye.org/host/search",
+            params={"query": query, "page": page},
         ) as response:
             if response.status == 403:
                 return None
 
             return await response.json()
 
-    async def get_hosts(self, query: str, *, pages: int = 1) -> List[Tuple[str, int]]:
+    async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
         """
         Get hosts from ZoomEye.
 
@@ -68,12 +78,19 @@ class ZoomEye:
         ----------
         query : str
             The query to search for.
-        pages : int
-            The number of pages to search, by default 1.
+        count : int, optional
+            The number of hosts to retrieve, by default 500.
+
+        Returns
+        -------
+        List[Tuple[str, int]]
+            The list of hosts.
         """
+        count = max(int(count), 1)
+
         tasks = [
             asyncio.create_task(self.search(query, page=page))
-            for page in range(1, pages + 1)
+            for page in range(1, math.ceil(count / 20) + 1)
         ]
 
         results = await asyncio.gather(*tasks)
@@ -85,5 +102,8 @@ class ZoomEye:
 
             for host in result["matches"]:
                 hosts.add((host["ip"], host["portinfo"]["port"]))
+
+                if len(hosts) == count:
+                    return list(hosts)
 
         return list(hosts)

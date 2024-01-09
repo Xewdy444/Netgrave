@@ -6,15 +6,61 @@ import ipaddress
 import itertools
 import logging
 import re
-from typing import Any, List, Optional
+from dataclasses import dataclass
+from typing import Any, List, Optional, Tuple
 
 import aiohttp
 import binary2strings
 from tenacity import retry
 
-from .dataclasses import DeviceCredentials, ExtractedString
-
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DeviceCredentials:
+    """A class for representing the credentials of a Netwave IP camera."""
+
+    host: str
+    port: int
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+    def __str__(self) -> str:
+        if self.username is None and self.password is None:
+            return f"{self.host}:{self.port}"
+
+        if self.password is None:
+            return f"{self.username}@{self.host}:{self.port}"
+
+        return f"{self.username}:{self.password}@{self.host}:{self.port}"
+
+    def __bool__(self) -> bool:
+        return self.username is not None
+
+
+@dataclass
+class ExtractedString:
+    """A class for representing a string that was extracted from binary data."""
+
+    string: str
+    encoding: str
+    span: Tuple[int, int]
+    is_interesting: bool
+
+    def __str__(self) -> str:
+        return self.string
+
+    def __hash__(self) -> int:
+        return hash(self.string)
+
+    def __eq__(self, __value: object, /) -> bool:
+        if isinstance(__value, ExtractedString):
+            return self.string == __value.string
+
+        if isinstance(__value, str):
+            return self.string == __value
+
+        return NotImplemented
 
 
 class NetwaveDevice:
@@ -240,6 +286,9 @@ class NetwaveDevice:
         bool
             Whether the credentials are valid.
         """
+        if credentials.username is None:
+            return False
+
         if credentials.password is None:
             auth = aiohttp.BasicAuth(credentials.username)
         else:
@@ -281,7 +330,10 @@ class NetwaveDevice:
             if response.status != 200:
                 return None
 
-            text = await response.text()
+            try:
+                text = await response.text()
+            except UnicodeDecodeError:
+                return None
 
         for line in text.splitlines():
             device_id_match = re.match(r"var id=[\"'](\w+)[\"'];", line)
@@ -315,7 +367,7 @@ class NetwaveDevice:
         """
         try:
             device_id = device_id or await self.get_device_id()
-        except (asyncio.TimeoutError, aiohttp.ClientError):
+        except (ConnectionError, TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get device ID", self)
             return self._empty_credentials
 
@@ -329,6 +381,6 @@ class NetwaveDevice:
             return await asyncio.wait_for(
                 self._get_credentials(device_id, timeout=timeout), timeout
             )
-        except (asyncio.TimeoutError, aiohttp.ClientError):
+        except (ConnectionError, TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get credentials", self)
             return self._empty_credentials
