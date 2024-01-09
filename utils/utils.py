@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any, Coroutine, List, Optional, Set, Tuple, TypeVar
 
-from pydantic import BaseModel, FilePath, PositiveInt, model_validator
+from pydantic import BaseModel, FilePath, PositiveInt
 
 from .censys import CensysCredentials
 from .zoomeye import ZoomEyeCredentials
