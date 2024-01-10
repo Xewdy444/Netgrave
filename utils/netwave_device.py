@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Tuple
 
 import aiohttp
 import binary2strings
-from tenacity import retry
+from tenacity import retry, retry_if_not_exception_type
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +271,7 @@ class NetwaveDevice:
             logger.error("[%s] Could not find device ID in memory dump", self)
             return self._empty_credentials
 
-    @retry
+    @retry(retry=retry_if_not_exception_type(ValueError))
     async def _check_credentials(self, credentials: DeviceCredentials) -> bool:
         """
         Check if the given credentials are valid.
@@ -304,12 +304,12 @@ class NetwaveDevice:
 
     @property
     def host(self) -> str:
-        """Return the host of the Netwave IP camera."""
+        """The host of the Netwave IP camera."""
         return self._host
 
     @property
     def port(self) -> int:
-        """Return the port of the Netwave IP camera."""
+        """The port of the Netwave IP camera."""
         return self._port
 
     async def close(self) -> None:
