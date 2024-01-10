@@ -58,15 +58,15 @@ class Args(BaseModel):
 
         if args.censys:
             censys_api_id = os.getenv("CENSYS_API_ID")
-            CENSYS_API_SECRET = os.getenv("CENSYS_API_SECRET")
+            censys_api_secret = os.getenv("CENSYS_API_SECRET")
 
-            if censys_api_id is None or CENSYS_API_SECRET is None:
+            if censys_api_id is None or censys_api_secret is None:
                 raise ValueError(
                     "You must set the CENSYS_API_ID and CENSYS_API_SECRET "
                     "environment variables."
                 )
 
-            new_args["censys"] = CensysCredentials(censys_api_id, CENSYS_API_SECRET)
+            new_args["censys"] = CensysCredentials(censys_api_id, censys_api_secret)
 
         if args.zoomeye:
             zoomeye_api_key = os.getenv("ZOOMEYE_API_KEY")
