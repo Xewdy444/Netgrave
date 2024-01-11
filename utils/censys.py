@@ -12,7 +12,7 @@ class CensysCredentials:
     """A class for representing Censys credentials."""
 
     api_id: str
-    secret: str
+    api_secret: str
 
 
 class Service(TypedDict):
@@ -38,7 +38,7 @@ class Censys:
         self._credentials = credentials
 
         self._session = aiohttp.ClientSession(
-            auth=aiohttp.BasicAuth(credentials.api_id, credentials.secret)
+            auth=aiohttp.BasicAuth(credentials.api_id, credentials.api_secret)
         )
 
     def __repr__(self) -> str:
