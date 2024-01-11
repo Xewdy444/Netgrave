@@ -8,7 +8,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Set, Tuple
 
 import aiohttp
 import binary2strings
@@ -63,6 +63,15 @@ class ExtractedString:
 
         return NotImplemented
 
+    def __contains__(self, __value: object, /) -> bool:
+        if isinstance(__value, ExtractedString):
+            return __value.string in self.string
+
+        if isinstance(__value, str):
+            return __value in self.string
+
+        return NotImplemented
+
 
 class NetwaveDevice:
     """
@@ -92,6 +101,56 @@ class NetwaveDevice:
 
     async def __aexit__(self, *_: Any) -> None:
         await self.close()
+
+    @staticmethod
+    def _filter_strings(
+        device_id: str, strings: List[ExtractedString]
+    ) -> List[ExtractedString]:
+        """
+        Filter the strings that were extracted from the memory dump.
+
+        Parameters
+        ----------
+        device_id : str
+            The device ID of the Netwave IP camera.
+        strings : List[ExtractedString]
+            The strings that were extracted from the memory dump.
+
+        Returns
+        -------
+        List[ExtractedString]
+            The filtered strings.
+        """
+        filtered_strings: Set[ExtractedString] = set()
+        domain_pattern = re.compile(r"[a-z0-9-]+\.[a-z0-9-]+\.[a-z]+")
+        email_pattern = re.compile(r"[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+")
+
+        for string in itertools.dropwhile(lambda string: string != device_id, strings):
+            if any(char in string for char in (" ", ":")):
+                continue
+
+            try:
+                string.string.encode("ascii")
+            except UnicodeEncodeError:
+                continue
+
+            try:
+                ipaddress.ip_address(string.string)
+            except ValueError:
+                pass
+            else:
+                continue
+
+            if (
+                string != device_id
+                and domain_pattern.fullmatch(string.string) is None
+                and email_pattern.fullmatch(string.string) is None
+                and string.encoding == "UTF8"
+                and string.is_interesting
+            ):
+                filtered_strings.add(string)
+
+        return list(filtered_strings)
 
     def _get_possible_credentials(
         self, device_id: str, memory: bytes
@@ -142,59 +201,6 @@ class NetwaveDevice:
         )
 
         return credentials
-
-    @staticmethod
-    def _filter_strings(
-        device_id: str, strings: List[ExtractedString]
-    ) -> List[ExtractedString]:
-        """
-        Filter the strings that were extracted from the memory dump.
-
-        Parameters
-        ----------
-        device_id : str
-            The device ID of the Netwave IP camera.
-        strings : List[ExtractedString]
-            The strings that were extracted from the memory dump.
-
-        Returns
-        -------
-        List[ExtractedString]
-            The filtered strings.
-        """
-        filtered_strings = set()
-        domain_pattern = re.compile(r"[a-z0-9-]+\.[a-z0-9-]+\.[a-z]+")
-        email_pattern = re.compile(r"[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+")
-
-        for string in itertools.dropwhile(lambda x: x.string != device_id, strings):
-            string.string = string.string.strip()
-
-            if not string.string:
-                continue
-
-            try:
-                string.string.encode("ascii")
-            except UnicodeEncodeError:
-                continue
-
-            try:
-                ipaddress.ip_address(string.string)
-            except ValueError:
-                pass
-            else:
-                continue
-
-            if (
-                string.string != device_id
-                and domain_pattern.fullmatch(string.string) is None
-                and email_pattern.fullmatch(string.string) is None
-                and not any(char in string.string for char in (" ", ":"))
-                and string.encoding == "UTF8"
-                and string.is_interesting
-            ):
-                filtered_strings.add(string)
-
-        return list(filtered_strings)
 
     async def _dump_memory(self, device_id: str) -> List[DeviceCredentials]:
         """
@@ -352,8 +358,7 @@ class NetwaveDevice:
             if device_id_match is None:
                 continue
 
-            device_id = device_id_match.group(1)
-            return device_id
+            return device_id_match.group(1)
 
         logger.error("[%s] Could not find device ID in status response", self)
         return None
