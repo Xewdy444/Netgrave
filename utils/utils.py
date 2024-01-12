@@ -150,13 +150,13 @@ def format_hosts(hosts: List[str]) -> List[Tuple[str, int]]:
     List[Tuple[str, int]]
         The formatted hosts.
     """
-    formatted_hosts = []
+    formatted_hosts: Set[Tuple[str, int]] = set()
 
     for host in hosts:
         try:
             host, port = host.split(":")
-            formatted_hosts.append((host, int(port)))
+            formatted_hosts.add((host, int(port)))
         except ValueError:
             logger.warning("Invalid host: %s", host)
 
-    return formatted_hosts
+    return list(formatted_hosts)

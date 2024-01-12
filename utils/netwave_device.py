@@ -183,7 +183,7 @@ class NetwaveDevice:
         possible_credentials = list(itertools.permutations(filtered_strings, 2))
 
         possible_credentials.sort(
-            key=lambda credentials: "admin" in credentials[0].string, reverse=True
+            key=lambda credentials: "admin" in credentials[0], reverse=True
         )
 
         credentials = [

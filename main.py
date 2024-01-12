@@ -120,8 +120,6 @@ async def main() -> None:
         logger.error("Could not get any hosts from the specified source.")
         return
 
-    hosts = list(set(hosts))
-
     logger.info(
         "Checking %s %s...", f"{len(hosts):,}", "host" if len(hosts) == 1 else "hosts"
     )
