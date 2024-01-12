@@ -9,7 +9,7 @@ On Linux systems, the `/proc/kcore` file path mirrors the physical memory of the
 This tool will first attempt to find the device ID in the memory dump. Once this has been found, it likely means that the credentials are nearby and will begin searching for them.
 
 ## Host Retrieval Options
-This tool supports three different ways of retrieving hosts to check for the vulnerability.
+This tool supports four different ways of retrieving hosts to check for the vulnerability.
 
 ### `--host`
 The first way is to specify a single host using the `--host` option. This option can be specified multiple times to check multiple hosts. The hosts should be in the `ip:port` format.
