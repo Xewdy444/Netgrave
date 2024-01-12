@@ -113,9 +113,8 @@ class Censys:
         List[Tuple[str, int]]
             The list of hosts.
         """
-        count = max(int(count), 1)
         hosts: Set[Tuple[str, int]] = set()
-        cursor = None
+        cursor: Optional[str] = None
 
         while len(hosts) < count:
             per_page = min(count - len(hosts), 100) if service_filter is None else 100

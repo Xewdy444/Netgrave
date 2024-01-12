@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 
@@ -86,15 +86,13 @@ class ZoomEye:
         List[Tuple[str, int]]
             The list of hosts.
         """
-        count = max(int(count), 1)
-
         tasks = [
             asyncio.create_task(self.search(query, page=page))
             for page in range(1, math.ceil(count / 20) + 1)
         ]
 
         results = await asyncio.gather(*tasks)
-        hosts = set()
+        hosts: Set[Tuple[str, int]] = set()
 
         for result in results:
             if result is None:
