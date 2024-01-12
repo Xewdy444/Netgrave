@@ -344,6 +344,7 @@ class NetwaveDevice:
         """
         async with self._session.get(f"http://{self}/get_status.cgi") as response:
             if response.status != 200:
+                logger.error("[%s] Could not get device ID", self)
                 return None
 
             try:
