@@ -127,15 +127,12 @@ async def main() -> None:
     devices = [NetwaveDevice(host, port) for host, port in hosts]
 
     async with CoroutineExecutor(args.concurrent) as executor:
-        tasks = [
-            executor.submit(device.get_credentials(timeout=args.timeout))
-            for device in devices
-        ]
+        for device in devices:
+            await executor.submit(device.get_credentials(timeout=args.timeout))
 
-        results = await asyncio.gather(*tasks)
+        results = await executor.gather()
 
-    for device in devices:
-        await device.close()
+    await asyncio.gather(*[asyncio.create_task(device.close()) for device in devices])
 
     args.output.touch()
     existing_credentials = args.output.read_text().splitlines()

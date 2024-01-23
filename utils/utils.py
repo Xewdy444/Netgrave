@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import Any, Coroutine, List, Optional, Set, Tuple, TypeVar
+from typing import Any, Coroutine, Iterator, List, Optional, Set, Tuple, TypeVar
 
 from pydantic import BaseModel, FilePath, PositiveInt
 
@@ -94,7 +94,7 @@ class CoroutineExecutor:
     def __init__(self, max_tasks: int) -> None:
         self._max_tasks = max_tasks
         self._semaphore = asyncio.Semaphore(max_tasks)
-        self._tasks: Set[asyncio.Task] = set()
+        self._tasks: Set[asyncio.Task[Any]] = set()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(max_tasks={self._max_tasks!r})"
@@ -102,11 +102,35 @@ class CoroutineExecutor:
     def __len__(self) -> int:
         return len(self._tasks)
 
+    def __iter__(self) -> CoroutineExecutor:
+        return self
+
+    def __next__(self) -> Iterator[asyncio.Task[Any]]:
+        for task in self._tasks:
+            yield task
+
     async def __aenter__(self) -> CoroutineExecutor:
         return self
 
     async def __aexit__(self, *_: Any) -> None:
         self.close()
+
+    async def _execute(self, coro: Coroutine[Any, Any, T]) -> T:
+        """
+        Execute a coroutine with a semaphore.
+
+        Parameters
+        ----------
+        coro : Coroutine[Any, Any, T]
+            The coroutine to execute.
+
+        Returns
+        -------
+        T
+            The result of the coroutine.
+        """
+        async with self._semaphore:
+            return await coro
 
     def close(self) -> None:
         """Cancel all pending tasks."""
@@ -115,7 +139,7 @@ class CoroutineExecutor:
 
         self._tasks.clear()
 
-    async def submit(self, coro: Coroutine[Any, Any, T]) -> T:
+    async def submit(self, coro: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
         """
         Submit a coroutine to be executed.
 
@@ -126,14 +150,23 @@ class CoroutineExecutor:
 
         Returns
         -------
-        T
-            The return value of the coroutine.
+        asyncio.Task[T]
+            The task that will execute the coroutine.
         """
-        async with self._semaphore:
-            task = asyncio.create_task(coro)
-            task.add_done_callback(self._tasks.discard)
-            self._tasks.add(task)
-            return await task
+        task = asyncio.create_task(self._execute(coro))
+        self._tasks.add(task)
+        return task
+
+    async def gather(self) -> List[Any]:
+        """
+        Gather the results of all pending tasks.
+
+        Returns
+        -------
+        List[Any]
+            The results of all pending tasks.
+        """
+        return await asyncio.gather(*self._tasks)
 
 
 def format_hosts(hosts: List[str]) -> List[Tuple[str, int]]:
