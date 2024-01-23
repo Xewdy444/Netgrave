@@ -128,7 +128,7 @@ async def main() -> None:
 
     async with CoroutineExecutor(args.concurrent) as executor:
         for device in devices:
-            await executor.submit(device.get_credentials(timeout=args.timeout))
+            executor.submit(device.get_credentials(timeout=args.timeout))
 
         results = await executor.gather()
 

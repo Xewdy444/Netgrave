@@ -139,7 +139,7 @@ class CoroutineExecutor:
 
         self._tasks.clear()
 
-    async def submit(self, coro: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
+    def submit(self, coro: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
         """
         Submit a coroutine to be executed.
 
