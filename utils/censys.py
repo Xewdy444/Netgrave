@@ -15,6 +15,10 @@ class CensysCredentials:
     api_secret: str
 
 
+class CensysError(Exception):
+    """An exception raised when an error occurs with the Censys API."""
+
+
 class Service(TypedDict):
     """A dictionary of service information."""
 
@@ -85,7 +89,12 @@ class Censys:
             if response.status == 422:
                 return None
 
-            return await response.json()
+            response_json = await response.json()
+
+            if "error" in response_json:
+                raise CensysError(response_json["error"])
+
+            return response_json
 
     async def get_hosts(
         self,

@@ -16,6 +16,10 @@ class ZoomEyeCredentials:
     api_key: str
 
 
+class ZoomEyeError(Exception):
+    """An exception raised when an error occurs with the ZoomEye API."""
+
+
 class ZoomEye:
     """
     A class for interacting with the ZoomEye API.
@@ -68,7 +72,12 @@ class ZoomEye:
             if response.status == 403:
                 return None
 
-            return await response.json()
+            response_json = await response.json()
+
+            if "error" in response_json:
+                raise ZoomEyeError(response_json["error"])
+
+            return response_json
 
     async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
         """
