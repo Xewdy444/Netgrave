@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import Any, Coroutine, Iterator, List, Optional, Set, Tuple, TypeVar
+from typing import Any, Coroutine, Iterable, List, Optional, Set, Tuple, TypeVar
 
 from pydantic import BaseModel, FilePath, PositiveInt
 
@@ -102,10 +102,7 @@ class CoroutineExecutor:
     def __len__(self) -> int:
         return len(self._tasks)
 
-    def __iter__(self) -> CoroutineExecutor:
-        return self
-
-    def __next__(self) -> Iterator[asyncio.Task[Any]]:
+    def __iter__(self) -> Iterable[asyncio.Task[Any]]:
         for task in self._tasks:
             yield task
 
