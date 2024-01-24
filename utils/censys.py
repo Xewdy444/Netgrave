@@ -91,10 +91,10 @@ class Censys:
 
             response_json = await response.json()
 
-            if "error" in response_json:
-                raise CensysError(response_json["error"])
+        if "error" in response_json:
+            raise CensysError(response_json["error"])
 
-            return response_json
+        return response_json
 
     async def get_hosts(
         self,

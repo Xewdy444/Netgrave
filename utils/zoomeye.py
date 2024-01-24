@@ -74,10 +74,10 @@ class ZoomEye:
 
             response_json = await response.json()
 
-            if "error" in response_json:
-                raise ZoomEyeError(response_json["error"])
+        if "error" in response_json:
+            raise ZoomEyeError(response_json["error"])
 
-            return response_json
+        return response_json
 
     async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
         """
