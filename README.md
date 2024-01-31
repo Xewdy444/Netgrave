@@ -14,10 +14,17 @@ This tool supports four different ways of retrieving hosts to check for the vuln
 ### `--host`
 The first way is to specify a single host using the `--host` option. This option can be specified multiple times to check multiple hosts. The hosts should be in the `ip:port` format.
 
+---
+
 ### `--file`
 The second way is to specify a file containing a list of hosts in the `ip:port` format using the `--file` option.
+
+---
+
 ### `--censys`
 The third way is to retrieve hosts from the Censys API using the `--censys` option. This option requires the `CENSYS_API_ID` and `CENSYS_API_SECRET` environment variables to be set.
+
+---
 
 ### `--zoomeye`
 The fourth way is to retrieve hosts from the ZoomEye API using the `--zoomeye` option. This option requires the `ZOOMEYE_API_KEY` environment variable to be set.
