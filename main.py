@@ -105,7 +105,7 @@ async def main() -> None:
 
         async with Censys(args.censys) as censys:
             hosts = await censys.get_hosts(
-                "Netwave and services.extended_service_name: HTTP",
+                'services.http.response.headers.Server: "Netwave IP Camera"',
                 count=args.number,
                 service_filter=lambda service: service["extended_service_name"]
                 == "HTTP",
@@ -114,7 +114,9 @@ async def main() -> None:
         logger.info("Retrieving hosts from ZoomEye...")
 
         async with ZoomEye(args.zoomeye) as zoomeye:
-            hosts = await zoomeye.get_hosts("Netwave", count=args.number)
+            hosts = await zoomeye.get_hosts(
+                'app: "Netwave IP Camera"', count=args.number
+            )
 
     if not hosts:
         logger.error("Could not get any hosts from the specified source.")
