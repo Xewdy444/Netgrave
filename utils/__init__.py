@@ -1,4 +1,5 @@
 """Utility functions and classes for Netgrave."""
+
 from .censys import Censys, CensysCredentials, CensysError
 from .netwave_device import NetwaveDevice
 from .utils import Args, CoroutineExecutor, format_hosts

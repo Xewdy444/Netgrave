@@ -1,4 +1,5 @@
 """A module for interacting with the ZoomEye API."""
+
 from __future__ import annotations
 
 import asyncio
@@ -32,9 +33,14 @@ class ZoomEye:
 
     def __init__(self, credentials: ZoomEyeCredentials) -> None:
         self._credentials = credentials
-
         self._session = aiohttp.ClientSession()
-        self._session.headers["API-KEY"] = credentials.api_key
+
+        self._session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+                "API-KEY": credentials.api_key,
+            }
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(credentials={self._credentials!r})"
@@ -66,8 +72,7 @@ class ZoomEye:
             The response from ZoomEye. Returns None if the page was not found.
         """
         async with self._session.get(
-            "https://api.zoomeye.org/host/search",
-            params={"query": query, "page": page},
+            "https://api.zoomeye.hk/host/search", params={"query": query, "page": page}
         ) as response:
             if response.status == 403:
                 return None
