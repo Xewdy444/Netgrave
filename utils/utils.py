@@ -104,8 +104,7 @@ class CoroutineExecutor:
         return len(self._tasks)
 
     def __iter__(self) -> Iterable[asyncio.Task[Any]]:
-        for task in self._tasks:
-            yield task
+        yield from self._tasks
 
     async def __aenter__(self) -> CoroutineExecutor:
         return self

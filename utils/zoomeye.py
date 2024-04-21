@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+
 
 @dataclass
 class ZoomEyeCredentials:
@@ -36,10 +38,7 @@ class ZoomEye:
         self._session = aiohttp.ClientSession()
 
         self._session.headers.update(
-            {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-                "API-KEY": credentials.api_key,
-            }
+            {"User-Agent": USER_AGENT, "API-KEY": credentials.api_key}
         )
 
     def __repr__(self) -> str:
@@ -102,7 +101,7 @@ class ZoomEye:
         """
         tasks = [
             asyncio.create_task(self.search(query, page=page))
-            for page in range(1, math.ceil(count / 20) + 1)
+            for page in range(1, math.ceil(count / 10) + 1)
         ]
 
         results = await asyncio.gather(*tasks)
