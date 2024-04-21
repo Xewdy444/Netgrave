@@ -11,8 +11,7 @@ from typing import Any, Coroutine, Iterable, List, Optional, Set, Tuple, TypeVar
 
 from pydantic import BaseModel, FilePath, PositiveInt
 
-from .censys import CensysCredentials
-from .zoomeye import ZoomEyeCredentials
+from .search_engines import CensysCredentials, ZoomEyeCredentials
 
 T = TypeVar("T")
 

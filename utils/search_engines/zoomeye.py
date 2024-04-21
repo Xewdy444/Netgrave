@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 
+from .search_engine import SearchEngine
+
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 
 
@@ -23,7 +25,7 @@ class ZoomEyeError(Exception):
     """An exception raised when an error occurs with the ZoomEye API."""
 
 
-class ZoomEye:
+class ZoomEye(SearchEngine):
     """
     A class for interacting with the ZoomEye API.
 
@@ -44,19 +46,9 @@ class ZoomEye:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(credentials={self._credentials!r})"
 
-    async def __aenter__(self) -> ZoomEye:
-        return self
-
-    async def __aexit__(self, *_: Any) -> None:
-        await self.close()
-
-    async def close(self) -> None:
-        """Close the session."""
-        await self._session.close()
-
     async def search(self, query: str, *, page: int = 1) -> Optional[Dict[str, Any]]:
         """
-        Search ZoomEye for the given query.
+        Search the ZoomEye API for the given query.
 
         Parameters
         ----------
@@ -85,7 +77,7 @@ class ZoomEye:
 
     async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
         """
-        Get hosts from ZoomEye.
+        Get hosts from ZoomEye that match the given query.
 
         Parameters
         ----------

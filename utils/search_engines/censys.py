@@ -7,6 +7,8 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypedDict
 
 import aiohttp
 
+from .search_engine import SearchEngine
+
 
 @dataclass
 class CensysCredentials:
@@ -29,7 +31,7 @@ class Service(TypedDict):
     port: int
 
 
-class Censys:
+class Censys(SearchEngine):
     """
     A class for interacting with the Censys API.
 
@@ -49,21 +51,11 @@ class Censys:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(credentials={self._credentials!r})"
 
-    async def __aenter__(self) -> Censys:
-        return self
-
-    async def __aexit__(self, *_: Any) -> None:
-        await self.close()
-
-    async def close(self) -> None:
-        """Close the session."""
-        await self._session.close()
-
     async def search(
         self, query: str, *, cursor: Optional[str] = None, per_page: int = 100
     ) -> Optional[Dict[str, Any]]:
         """
-        Search Censys for the given query.
+        Search the Censys API for the given query.
 
         Parameters
         ----------
@@ -105,7 +97,7 @@ class Censys:
         service_filter: Optional[Callable[[Service], bool]] = None,
     ) -> List[Tuple[str, int]]:
         """
-        Get hosts from Censys.
+        Get hosts from Censys that match the given query.
 
         Parameters
         ----------
