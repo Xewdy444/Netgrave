@@ -1,7 +1,5 @@
 """A module for interacting with the ZoomEye API."""
 
-from __future__ import annotations
-
 import asyncio
 import math
 from dataclasses import dataclass

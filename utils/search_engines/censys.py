@@ -1,7 +1,5 @@
 """A module for interacting with the Censys API."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypedDict
 

@@ -40,7 +40,7 @@ class SearchEngine(ABC):
         """
 
     @abstractmethod
-    async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
+    async def get_hosts(self, query: str, *, count: int) -> List[Tuple[str, int]]:
         """
         Get hosts that match the given query.
 
@@ -49,7 +49,7 @@ class SearchEngine(ABC):
         query : str
             The query to search for.
         count : int, optional
-            The number of hosts to retrieve, by default 500.
+            The number of hosts to retrieve.
 
         Returns
         -------
