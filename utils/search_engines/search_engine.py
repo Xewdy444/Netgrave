@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class SearchEngine(ABC):
@@ -13,7 +19,7 @@ class SearchEngine(ABC):
 
     _session: aiohttp.ClientSession
 
-    async def __aenter__(self) -> SearchEngine:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *_: Any) -> None:
@@ -48,7 +54,7 @@ class SearchEngine(ABC):
         ----------
         query : str
             The query to search for.
-        count : int, optional
+        count : int
             The number of hosts to retrieve.
 
         Returns
