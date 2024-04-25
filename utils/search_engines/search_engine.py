@@ -1,7 +1,5 @@
 """The base class for interacting with an IoT search engine."""
 
-from __future__ import annotations
-
 import sys
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
