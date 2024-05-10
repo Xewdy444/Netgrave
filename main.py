@@ -72,17 +72,17 @@ async def main() -> None:
     parser.add_argument(
         "-n",
         "--number",
-        default=500,
+        default=100,
         type=int,
-        help="The number of hosts to retrieve from Censys or ZoomEye, by default 500",
+        help="The number of hosts to retrieve from Censys or ZoomEye, by default 100",
     )
 
     parser.add_argument(
         "-c",
         "--concurrent",
-        default=50,
+        default=25,
         type=int,
-        help="The number of hosts to check concurrently, by default 50",
+        help="The number of hosts to check concurrently, by default 25",
     )
 
     parser.add_argument(

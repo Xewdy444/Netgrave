@@ -39,7 +39,7 @@ The fifth way is to retrieve hosts from the ZoomEye API using the `--zoomeye` op
 
 ## Usage
 ```
-Usage: main.py [-h] [--host HOST | -f FILE | --censys | --zoomeye] [-n NUMBER] [-c CONCURRENT] [-t TIMEOUT] [-o OUTPUT]
+Usage: main.py [-h] (--host HOST | -f FILE | --censys | --shodan | --zoomeye) [-n NUMBER] [-c CONCURRENT] [-t TIMEOUT] [-o OUTPUT]
 
 A tool for retrieving login credentials from Netwave IP cameras using a memory dump vulnerability (CVE-2018-17240)
 
@@ -48,10 +48,11 @@ Options:
   --host HOST           A host to check, can be specified multiple times
   -f, --file FILE       A file containing the hosts to check
   --censys              Retrieve hosts from the Censys API using the API ID and secret specified with the CENSYS_API_ID and CENSYS_API_SECRET environment variables
+  --shodan              Retrieve hosts from the Shodan API using the API key specified with the SHODAN_API_KEY environment variable
   --zoomeye             Retrieve hosts from the ZoomEye API using the API key specified with the ZOOMEYE_API_KEY environment variable
-  -n, --number NUMBER   The number of hosts to retrieve from Censys or ZoomEye, by default 500
+  -n, --number NUMBER   The number of hosts to retrieve from Censys or ZoomEye, by default 100
   -c, --concurrent CONCURRENT
-                        The number of hosts to check concurrently, by default 50
+                        The number of hosts to check concurrently, by default 25
   -t, --timeout TIMEOUT
                         The timeout in seconds for retrieving the credentials from the memory dump, by default 300
   -o, --output OUTPUT   The file to write the credentials to, by default credentials.txt

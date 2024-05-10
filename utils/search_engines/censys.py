@@ -93,7 +93,7 @@ class Censys(SearchEngine):
         self,
         query: str,
         *,
-        count: int = 500,
+        count: int = 100,
         service_filter: Optional[Callable[[Service], bool]] = None,
     ) -> List[Tuple[str, int]]:
         """
@@ -104,7 +104,7 @@ class Censys(SearchEngine):
         query : str
             The query to search for.
         count : int, optional
-            The number of hosts to retrieve, by default 500.
+            The number of hosts to retrieve, by default 100.
         service_filter : Optional[Callable[[Service], bool]], optional
             A function to filter the services, by default None.
             The function should return True if the service should be included

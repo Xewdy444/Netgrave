@@ -74,7 +74,7 @@ class ZoomEye(SearchEngine):
 
         return response_json
 
-    async def get_hosts(self, query: str, *, count: int = 500) -> List[Tuple[str, int]]:
+    async def get_hosts(self, query: str, *, count: int = 100) -> List[Tuple[str, int]]:
         """
         Get hosts from ZoomEye that match the given query.
 
@@ -83,7 +83,7 @@ class ZoomEye(SearchEngine):
         query : str
             The query to search for.
         count : int, optional
-            The number of hosts to retrieve, by default 500.
+            The number of hosts to retrieve, by default 100.
 
         Returns
         -------
