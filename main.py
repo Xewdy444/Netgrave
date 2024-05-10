@@ -74,7 +74,8 @@ async def main() -> None:
         "--number",
         default=100,
         type=int,
-        help="The number of hosts to retrieve from Censys or ZoomEye, by default 100",
+        help="The number of hosts to retrieve from the IoT search engine, "
+        "by default 100",
     )
 
     parser.add_argument(
@@ -91,7 +92,7 @@ async def main() -> None:
         default=300,
         type=int,
         help="The timeout in seconds for retrieving the credentials from the memory "
-        "dump, by default 300",
+        "dump for each host, by default 300",
     )
 
     parser.add_argument(
