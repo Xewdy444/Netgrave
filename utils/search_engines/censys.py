@@ -1,13 +1,13 @@
 """A module for interacting with the Censys API."""
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypedDict
+from typing import Any, Callable, Dict, Final, List, Optional, Set, Tuple, TypedDict
 
 import aiohttp
 
 from .search_engine import SearchEngine
 
-PAGE_SIZE = 100
+PAGE_SIZE: Final[int] = 100
 
 
 @dataclass
@@ -16,6 +16,9 @@ class CensysCredentials:
 
     api_id: str
     api_secret: str
+
+    def __str__(self) -> str:
+        return f"{self.api_id}:{self.api_secret}"
 
 
 class CensysError(Exception):

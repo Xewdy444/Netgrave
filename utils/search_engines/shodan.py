@@ -3,13 +3,13 @@
 import asyncio
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Final, List, Optional, Set, Tuple
 
 import aiohttp
 
 from .search_engine import SearchEngine
 
-PAGE_SIZE = 100
+PAGE_SIZE: Final[int] = 100
 
 
 @dataclass
@@ -17,6 +17,9 @@ class ShodanCredentials:
     """A class for representing Shodan credentials."""
 
     api_key: str
+
+    def __str__(self) -> str:
+        return self.api_key
 
 
 class ShodanError(Exception):
@@ -58,7 +61,7 @@ class Shodan(SearchEngine):
         """
         async with self._session.get(
             "https://api.shodan.io/shodan/host/search",
-            params={"key": self._credentials.api_key, "query": query, "page": page},
+            params={"key": str(self._credentials), "query": query, "page": page},
         ) as response:
             if response.status == 400:
                 return None

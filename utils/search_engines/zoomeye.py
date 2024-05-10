@@ -3,14 +3,17 @@
 import asyncio
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Final, List, Optional, Set, Tuple
 
 import aiohttp
 
 from .search_engine import SearchEngine
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-PAGE_SIZE = 10
+USER_AGENT: Final[str] = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+PAGE_SIZE: Final[int] = 10
 
 
 @dataclass
@@ -18,6 +21,9 @@ class ZoomEyeCredentials:
     """A class for representing ZoomEye credentials."""
 
     api_key: str
+
+    def __str__(self) -> str:
+        return self.api_key
 
 
 class ZoomEyeError(Exception):
@@ -36,10 +42,9 @@ class ZoomEye(SearchEngine):
 
     def __init__(self, credentials: ZoomEyeCredentials) -> None:
         self._credentials = credentials
-        self._session = aiohttp.ClientSession()
 
-        self._session.headers.update(
-            {"User-Agent": USER_AGENT, "API-KEY": credentials.api_key}
+        self._session = aiohttp.ClientSession(
+            headers={"User-Agent": USER_AGENT, "API-KEY": str(credentials)}
         )
 
     def __repr__(self) -> str:
