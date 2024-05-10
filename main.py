@@ -6,7 +6,15 @@ from rich import traceback
 from rich.logging import RichHandler
 from rich_argparse import RichHelpFormatter
 
-from utils import Args, Censys, CoroutineExecutor, NetwaveDevice, ZoomEye, format_hosts
+from utils import (
+    Args,
+    Censys,
+    CoroutineExecutor,
+    NetwaveDevice,
+    Shodan,
+    ZoomEye,
+    format_hosts,
+)
 
 logger = logging.getLogger(__name__)
 traceback.install(show_locals=True)
@@ -45,6 +53,13 @@ async def main() -> None:
         help="Retrieve hosts from the Censys API "
         "using the API ID and secret specified with the CENSYS_API_ID and "
         "CENSYS_API_SECRET environment variables",
+    )
+
+    source_group.add_argument(
+        "--shodan",
+        action="store_true",
+        help="Retrieve hosts from the Shodan API "
+        "using the API key specified with the SHODAN_API_KEY environment variable",
     )
 
     source_group.add_argument(
@@ -110,12 +125,19 @@ async def main() -> None:
                 service_filter=lambda service: service["extended_service_name"]
                 == "HTTP",
             )
+    elif args.shodan is not None:
+        logger.info("Retrieving hosts from Shodan...")
+
+        async with Shodan(args.shodan) as shodan:
+            hosts = await shodan.get_hosts(
+                "product:Netwave IP Camera", count=args.number
+            )
     elif args.zoomeye is not None:
         logger.info("Retrieving hosts from ZoomEye...")
 
         async with ZoomEye(args.zoomeye) as zoomeye:
             hosts = await zoomeye.get_hosts(
-                'app: "Netwave IP Camera"', count=args.number
+                'app:"Netwave IP Camera"', count=args.number
             )
 
     if not hosts:

@@ -9,7 +9,7 @@ On Linux systems, the `/proc/kcore` file path mirrors the physical memory of the
 This tool will first attempt to find the device ID in the memory dump. Once this has been found, it likely means that the credentials are nearby and will begin searching for them.
 
 ## Host Retrieval Options
-This tool supports four different ways of retrieving hosts to check for the vulnerability.
+This tool supports five different ways of retrieving/specifying hosts to check for the vulnerability.
 
 ### `--host`
 The first way is to specify a single host using the `--host` option. This option can be specified multiple times to check multiple hosts. The hosts should be in the `ip:port` format.
@@ -26,8 +26,13 @@ The third way is to retrieve hosts from the Censys API using the `--censys` opti
 
 ---
 
+### `--shodan`
+The fourth way is to retrieve hosts from the Shodan API using the `--shodan` option. This option requires the `SHODAN_API_KEY` environment variable to be set.
+
+---
+
 ### `--zoomeye`
-The fourth way is to retrieve hosts from the ZoomEye API using the `--zoomeye` option. This option requires the `ZOOMEYE_API_KEY` environment variable to be set.
+The fifth way is to retrieve hosts from the ZoomEye API using the `--zoomeye` option. This option requires the `ZOOMEYE_API_KEY` environment variable to be set.
 
 ## Installation
     $ pip install -r requirements.txt

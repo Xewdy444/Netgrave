@@ -44,32 +44,32 @@ class DeviceCredentials:
 class ExtractedString:
     """A class for representing a string that was extracted from binary data."""
 
-    string: str
+    value: str
     encoding: str
     span: Tuple[int, int]
     is_interesting: bool
 
     def __str__(self) -> str:
-        return self.string
+        return self.value
 
     def __hash__(self) -> int:
-        return hash(self.string)
+        return hash(self.value)
 
     def __eq__(self, __value: object, /) -> bool:
         if isinstance(__value, ExtractedString):
-            return self.string == __value.string
+            return self.value == __value.value
 
         if isinstance(__value, str):
-            return self.string == __value
+            return self.value == __value
 
         return NotImplemented
 
     def __contains__(self, __value: object, /) -> bool:
         if isinstance(__value, ExtractedString):
-            return __value.string in self.string
+            return __value.value in self.value
 
         if isinstance(__value, str):
-            return __value in self.string
+            return __value in self.value
 
         return NotImplemented
 
@@ -131,12 +131,12 @@ class NetwaveDevice:
                 continue
 
             try:
-                string.string.encode("ascii")
+                string.value.encode("ascii")
             except UnicodeEncodeError:
                 continue
 
             try:
-                ipaddress.ip_address(string.string)
+                ipaddress.ip_address(string.value)
             except ValueError:
                 pass
             else:
@@ -144,8 +144,8 @@ class NetwaveDevice:
 
             if (
                 string != device_id
-                and domain_pattern.fullmatch(string.string) is None
-                and email_pattern.fullmatch(string.string) is None
+                and domain_pattern.fullmatch(string.value) is None
+                and email_pattern.fullmatch(string.value) is None
                 and string.encoding == "UTF8"
                 and string.is_interesting
             ):
@@ -189,14 +189,14 @@ class NetwaveDevice:
 
         credentials = [
             DeviceCredentials(
-                self._host, self._port, credentials[0].string, credentials[1].string
+                self._host, self._port, credentials[0].value, credentials[1].value
             )
             for credentials in possible_credentials
         ]
 
         credentials.extend(
             [
-                DeviceCredentials(self._host, self._port, credentials[0].string)
+                DeviceCredentials(self._host, self._port, credentials[0].value)
                 for credentials in possible_credentials
             ]
         )
