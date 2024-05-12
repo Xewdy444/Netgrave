@@ -19,6 +19,8 @@ The first way is to specify a single host using the `--host` option. This option
 ### `--file`
 The second way is to specify a file containing a list of hosts in the `ip:port` format using the `--file` option.
 
+---
+
 ### Retrieving Hosts
 This tool supports retrieving hosts from Censys, Shodan, and ZoomEye to check for the vulnerability.
 
@@ -51,7 +53,7 @@ Options:
   -c, --concurrent CONCURRENT
                         The number of hosts to check concurrently, by default 25
   -t, --timeout TIMEOUT
-                        The timeout in seconds for retrieving the credentials from the memory dump for each host, by default 300
+                        The timeout in seconds for retrieving the credentials from the memory dump of each host, by default 300
   -o, --output OUTPUT   The file to write the credentials to, by default credentials.txt
 ```
 
