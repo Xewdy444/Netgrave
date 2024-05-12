@@ -92,7 +92,7 @@ async def main() -> None:
         default=300,
         type=int,
         help="The timeout in seconds for retrieving the credentials from the memory "
-        "dump for each host, by default 300",
+        "dump of each host, by default 300",
     )
 
     parser.add_argument(
