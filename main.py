@@ -6,7 +6,15 @@ from rich import traceback
 from rich.logging import RichHandler
 from rich_argparse import RichHelpFormatter
 
-from utils import Args, Censys, CoroutineExecutor, NetwaveDevice, ZoomEye, format_hosts
+from utils import (
+    Args,
+    Censys,
+    CoroutineExecutor,
+    NetwaveDevice,
+    Shodan,
+    ZoomEye,
+    format_hosts,
+)
 
 logger = logging.getLogger(__name__)
 traceback.install(show_locals=True)
@@ -48,6 +56,13 @@ async def main() -> None:
     )
 
     source_group.add_argument(
+        "--shodan",
+        action="store_true",
+        help="Retrieve hosts from the Shodan API "
+        "using the API key specified with the SHODAN_API_KEY environment variable",
+    )
+
+    source_group.add_argument(
         "--zoomeye",
         action="store_true",
         help="Retrieve hosts from the ZoomEye API "
@@ -57,17 +72,18 @@ async def main() -> None:
     parser.add_argument(
         "-n",
         "--number",
-        default=500,
+        default=100,
         type=int,
-        help="The number of hosts to retrieve from Censys or ZoomEye, by default 500",
+        help="The number of hosts to retrieve from the IoT search engine, "
+        "by default 100",
     )
 
     parser.add_argument(
         "-c",
         "--concurrent",
-        default=50,
+        default=25,
         type=int,
-        help="The number of hosts to check concurrently, by default 50",
+        help="The number of hosts to check concurrently, by default 25",
     )
 
     parser.add_argument(
@@ -76,7 +92,7 @@ async def main() -> None:
         default=300,
         type=int,
         help="The timeout in seconds for retrieving the credentials from the memory "
-        "dump, by default 300",
+        "dump for each host, by default 300",
     )
 
     parser.add_argument(
@@ -110,12 +126,19 @@ async def main() -> None:
                 service_filter=lambda service: service["extended_service_name"]
                 == "HTTP",
             )
+    elif args.shodan is not None:
+        logger.info("Retrieving hosts from Shodan...")
+
+        async with Shodan(args.shodan) as shodan:
+            hosts = await shodan.get_hosts(
+                "product:Netwave IP Camera", count=args.number
+            )
     elif args.zoomeye is not None:
         logger.info("Retrieving hosts from ZoomEye...")
 
         async with ZoomEye(args.zoomeye) as zoomeye:
             hosts = await zoomeye.get_hosts(
-                'app: "Netwave IP Camera"', count=args.number
+                'app:"Netwave IP Camera"', count=args.number
             )
 
     if not hosts:

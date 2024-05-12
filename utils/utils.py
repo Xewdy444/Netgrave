@@ -11,7 +11,7 @@ from typing import Any, Coroutine, Iterable, List, Optional, Set, Tuple, TypeVar
 
 from pydantic import BaseModel, FilePath, PositiveInt
 
-from .search_engines import CensysCredentials, ZoomEyeCredentials
+from .search_engines import CensysCredentials, ShodanCredentials, ZoomEyeCredentials
 
 T = TypeVar("T")
 
@@ -24,6 +24,7 @@ class Args(BaseModel):
     hosts: List[str]
     file: Optional[FilePath]
     censys: Optional[CensysCredentials]
+    shodan: Optional[ShodanCredentials]
     zoomeye: Optional[ZoomEyeCredentials]
     output: Path
     number: PositiveInt
@@ -49,6 +50,7 @@ class Args(BaseModel):
             "hosts": args.hosts,
             "file": args.file,
             "censys": None,
+            "shodan": None,
             "zoomeye": None,
             "output": args.output,
             "number": args.number,
@@ -67,6 +69,16 @@ class Args(BaseModel):
                 )
 
             new_args["censys"] = CensysCredentials(censys_api_id, censys_api_secret)
+
+        if args.shodan:
+            shodan_api_key = os.getenv("SHODAN_API_KEY")
+
+            if shodan_api_key is None:
+                raise ValueError(
+                    "You must set the SHODAN_API_KEY environment variable."
+                )
+
+            new_args["shodan"] = ShodanCredentials(shodan_api_key)
 
         if args.zoomeye:
             zoomeye_api_key = os.getenv("ZOOMEYE_API_KEY")

@@ -1,11 +1,13 @@
 """A module for interacting with the Censys API."""
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypedDict
+from typing import Any, Callable, Dict, Final, List, Optional, Set, Tuple, TypedDict
 
 import aiohttp
 
 from .search_engine import SearchEngine
+
+PAGE_SIZE: Final[int] = 100
 
 
 @dataclass
@@ -14,6 +16,9 @@ class CensysCredentials:
 
     api_id: str
     api_secret: str
+
+    def __str__(self) -> str:
+        return f"{self.api_id}:{self.api_secret}"
 
 
 class CensysError(Exception):
@@ -50,7 +55,7 @@ class Censys(SearchEngine):
         return f"{self.__class__.__name__}(credentials={self._credentials!r})"
 
     async def search(
-        self, query: str, *, cursor: Optional[str] = None, per_page: int = 100
+        self, query: str, *, cursor: Optional[str] = None, per_page: int = PAGE_SIZE
     ) -> Optional[Dict[str, Any]]:
         """
         Search the Censys API for the given query.
@@ -62,7 +67,7 @@ class Censys(SearchEngine):
         cursor : Optional[str], optional
             The cursor token to use, by default None.
         per_page : int, optional
-            The number of results per page, by default 100.
+            The number of results per page, by default PAGE_SIZE.
 
         Returns
         -------
@@ -91,7 +96,7 @@ class Censys(SearchEngine):
         self,
         query: str,
         *,
-        count: int = 500,
+        count: int = 100,
         service_filter: Optional[Callable[[Service], bool]] = None,
     ) -> List[Tuple[str, int]]:
         """
@@ -102,7 +107,7 @@ class Censys(SearchEngine):
         query : str
             The query to search for.
         count : int, optional
-            The number of hosts to retrieve, by default 500.
+            The number of hosts to retrieve, by default 100.
         service_filter : Optional[Callable[[Service], bool]], optional
             A function to filter the services, by default None.
             The function should return True if the service should be included
@@ -117,7 +122,12 @@ class Censys(SearchEngine):
         cursor: Optional[str] = None
 
         while len(hosts) < count:
-            per_page = min(count - len(hosts), 100) if service_filter is None else 100
+            per_page = (
+                min(count - len(hosts), PAGE_SIZE)
+                if service_filter is None
+                else PAGE_SIZE
+            )
+
             response = await self.search(query, cursor=cursor, per_page=per_page)
 
             if response is None:
