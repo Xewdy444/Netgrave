@@ -128,7 +128,13 @@ class NetwaveDevice:
         email_pattern = re.compile(r"[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+")
 
         for string in itertools.dropwhile(lambda string: string != device_id, strings):
-            if string == device_id or any(char in string for char in (" ", ":")):
+            if (
+                string == device_id
+                or string.encoding == "WIDE_STRING"
+                or any(char in string for char in (" ", ":"))
+                or email_pattern.fullmatch(string.value) is not None
+                or domain_pattern.fullmatch(string.value) is not None
+            ):
                 continue
 
             try:
@@ -139,16 +145,6 @@ class NetwaveDevice:
             try:
                 ipaddress.ip_address(string.value)
             except ValueError:
-                pass
-            else:
-                continue
-
-            if (
-                string.encoding == "UTF8"
-                and string.is_interesting
-                and email_pattern.fullmatch(string.value) is None
-                and domain_pattern.fullmatch(string.value) is None
-            ):
                 filtered_strings.add(string)
 
         return list(filtered_strings)
@@ -173,7 +169,9 @@ class NetwaveDevice:
         """
         strings = [
             ExtractedString(*string)
-            for string in binary2strings.extract_all_strings(memory)
+            for string in binary2strings.extract_all_strings(
+                memory, only_interesting=True
+            )
         ]
 
         filtered_strings = self._filter_strings(device_id, strings)
