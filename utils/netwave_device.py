@@ -108,14 +108,15 @@ class NetwaveDevice:
         device_id: str, strings: List[ExtractedString]
     ) -> List[ExtractedString]:
         """
-        Filter the strings that were extracted from the memory dump.
+        Remove unwanted strings such as IP addresses,
+        domain names, and email addresses.
 
         Parameters
         ----------
         device_id : str
             The device ID of the Netwave IP camera.
         strings : List[ExtractedString]
-            The strings that were extracted from the memory dump.
+            The strings to filter.
 
         Returns
         -------
@@ -127,7 +128,7 @@ class NetwaveDevice:
         email_pattern = re.compile(r"[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+")
 
         for string in itertools.dropwhile(lambda string: string != device_id, strings):
-            if any(char in string for char in (" ", ":")):
+            if string == device_id or any(char in string for char in (" ", ":")):
                 continue
 
             try:
@@ -143,11 +144,10 @@ class NetwaveDevice:
                 continue
 
             if (
-                string != device_id
-                and domain_pattern.fullmatch(string.value) is None
-                and email_pattern.fullmatch(string.value) is None
-                and string.encoding == "UTF8"
+                string.encoding == "UTF8"
                 and string.is_interesting
+                and email_pattern.fullmatch(string.value) is None
+                and domain_pattern.fullmatch(string.value) is None
             ):
                 filtered_strings.add(string)
 
