@@ -386,7 +386,7 @@ class NetwaveDevice:
         """
         try:
             device_id = device_id or await self.get_device_id()
-        except (ConnectionError, TimeoutError, aiohttp.ClientError):
+        except (ConnectionError, asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not get device ID", self)
             return None
 
@@ -400,7 +400,7 @@ class NetwaveDevice:
             possible_credentials = await asyncio.wait_for(
                 self._dump_memory(device_id), timeout=timeout
             )
-        except (ConnectionError, TimeoutError, aiohttp.ClientError):
+        except (ConnectionError, asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not dump memory", self)
             return None
 
@@ -418,7 +418,7 @@ class NetwaveDevice:
                 self._get_valid_credentials(possible_credentials),
                 timeout=remaining_time,
             )
-        except (TimeoutError, asyncio.CancelledError):
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             logger.error("[%s] Could not get valid credentials", self)
             return None
 
