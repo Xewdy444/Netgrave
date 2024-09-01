@@ -11,27 +11,23 @@ This tool will first attempt to find the device ID in the memory dump. Once this
 ## Host Options
 
 ### Specifying Hosts
-This tool supports two different ways to specify hosts to check for the vulnerability.
+This tool supports two different ways to specify hosts to check for the vulnerability. The hosts must be in the `ip:port` format.
 
-#### `--host`
-The first way is to specify a single host using the `--host` option. This option can be specified multiple times to check multiple hosts. The hosts should be in the `ip:port` format.
-
-#### `--file`
-The second way is to specify a file containing a list of hosts in the `ip:port` format using the `--file` option.
+| Argument | Description                                      |
+| -------- | ------------------------------------------------ |
+| `--host` | A host to check, can be specified multiple times |
+| `--file` | A file containing a list of hosts check          |
 
 ---
 
 ### Retrieving Hosts
 This tool supports retrieving hosts from Censys, Shodan, and ZoomEye to check for the vulnerability.
 
-#### `--censys`
-You can retrieve hosts from the Censys API by using the `--censys` option. This option requires the `CENSYS_API_ID` and `CENSYS_API_SECRET` environment variables to be set.
-
-#### `--shodan`
-You can retrieve hosts from the Shodan API by using the `--shodan` option. This option requires the `SHODAN_API_KEY` environment variable to be set.
-
-#### `--zoomeye`
-You can retrieve hosts from the ZoomEye API by using the `--zoomeye` option. This option requires the `ZOOMEYE_API_KEY` environment variable to be set.
+| IoT Search Engine | Argument    | Required Environment Variables       |
+| ----------------- | ----------- | ------------------------------------ |
+| Censys            | `--censys`  | `CENSYS_API_ID`, `CENSYS_API_SECRET` |
+| Shodan            | `--shodan`  | `SHODAN_API_KEY`                     |
+| ZoomEye           | `--zoomeye` | `ZOOMEYE_API_KEY`                    |
 
 ## Installation
     $ pip install -r requirements.txt
