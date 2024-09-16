@@ -103,7 +103,7 @@ async def main() -> None:
         help="The file to write the credentials to, by default credentials.txt",
     )
 
-    args = Args.from_args(parser.parse_args())
+    args = Args.from_namespace(parser.parse_args())
 
     logging.basicConfig(
         format="%(message)s",

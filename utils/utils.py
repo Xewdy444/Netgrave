@@ -32,14 +32,14 @@ class Args(BaseModel):
     concurrent: PositiveInt
 
     @classmethod
-    def from_args(cls, args: argparse.Namespace) -> Args:
+    def from_namespace(cls, namespace: argparse.Namespace) -> Args:
         """
-        Create an Args instance from the given arguments.
+        Create an instance of Args from an argparse namespace.
 
         Parameters
         ----------
-        args : argparse.Namespace
-            The arguments to create an Args instance from.
+        namespace : argparse.Namespace
+            The namespace to create the Args instance from.
 
         Returns
         -------
@@ -47,18 +47,18 @@ class Args(BaseModel):
             The Args instance.
         """
         new_args = {
-            "hosts": args.hosts,
-            "file": args.file,
+            "hosts": namespace.hosts,
+            "file": namespace.file,
             "censys": None,
             "shodan": None,
             "zoomeye": None,
-            "output": args.output,
-            "number": args.number,
-            "timeout": args.timeout,
-            "concurrent": args.concurrent,
+            "output": namespace.output,
+            "number": namespace.number,
+            "timeout": namespace.timeout,
+            "concurrent": namespace.concurrent,
         }
 
-        if args.censys:
+        if namespace.censys:
             censys_api_id = os.getenv("CENSYS_API_ID")
             censys_api_secret = os.getenv("CENSYS_API_SECRET")
 
@@ -70,7 +70,7 @@ class Args(BaseModel):
 
             new_args["censys"] = CensysCredentials(censys_api_id, censys_api_secret)
 
-        if args.shodan:
+        if namespace.shodan:
             shodan_api_key = os.getenv("SHODAN_API_KEY")
 
             if shodan_api_key is None:
@@ -80,7 +80,7 @@ class Args(BaseModel):
 
             new_args["shodan"] = ShodanCredentials(shodan_api_key)
 
-        if args.zoomeye:
+        if namespace.zoomeye:
             zoomeye_api_key = os.getenv("ZOOMEYE_API_KEY")
 
             if zoomeye_api_key is None:
