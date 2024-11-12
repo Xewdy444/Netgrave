@@ -3,13 +3,11 @@
 import asyncio
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, Final, List, Optional, Set, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 
 from .search_engine import SearchEngine
-
-PAGE_SIZE: Final[int] = 100
 
 
 @dataclass
@@ -35,6 +33,8 @@ class Shodan(SearchEngine):
     credentials : ShodanCredentials
         The credentials to use for the API.
     """
+
+    PAGE_SIZE: ClassVar[int] = 100
 
     def __init__(self, credentials: ShodanCredentials) -> None:
         self._credentials = credentials
@@ -91,7 +91,7 @@ class Shodan(SearchEngine):
         """
         tasks = [
             asyncio.create_task(self.search(query, page=page))
-            for page in range(1, math.ceil(count / PAGE_SIZE) + 1)
+            for page in range(1, math.ceil(count / self.PAGE_SIZE) + 1)
         ]
 
         results = await asyncio.gather(*tasks)

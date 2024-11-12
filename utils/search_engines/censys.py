@@ -1,13 +1,11 @@
 """A module for interacting with the Censys API."""
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Final, List, Optional, Set, Tuple, TypedDict
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, TypedDict
 
 import aiohttp
 
 from .search_engine import SearchEngine
-
-PAGE_SIZE: Final[int] = 100
 
 
 @dataclass
@@ -43,6 +41,8 @@ class Censys(SearchEngine):
     credentials : CensysCredentials
         The credentials to use for the API.
     """
+
+    PAGE_SIZE: ClassVar[int] = 100
 
     def __init__(self, credentials: CensysCredentials) -> None:
         self._credentials = credentials
@@ -123,9 +123,9 @@ class Censys(SearchEngine):
 
         while len(hosts) < count:
             per_page = (
-                min(count - len(hosts), PAGE_SIZE)
+                min(count - len(hosts), self.PAGE_SIZE)
                 if service_filter is None
-                else PAGE_SIZE
+                else self.PAGE_SIZE
             )
 
             response = await self.search(query, cursor=cursor, per_page=per_page)

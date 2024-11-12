@@ -3,17 +3,11 @@
 import asyncio
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, Final, List, Optional, Set, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 
 from .search_engine import SearchEngine
-
-USER_AGENT: Final[str] = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-)
-
-PAGE_SIZE: Final[int] = 10
 
 
 @dataclass
@@ -40,11 +34,18 @@ class ZoomEye(SearchEngine):
         The credentials to use for the API.
     """
 
+    PAGE_SIZE: ClassVar[int] = 10
+
     def __init__(self, credentials: ZoomEyeCredentials) -> None:
         self._credentials = credentials
 
         self._session = aiohttp.ClientSession(
-            headers={"User-Agent": USER_AGENT, "API-KEY": str(credentials)}
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 "
+                "Safari/537.36",
+                "API-KEY": str(credentials),
+            }
         )
 
     def __repr__(self) -> str:
@@ -97,7 +98,7 @@ class ZoomEye(SearchEngine):
         """
         tasks = [
             asyncio.create_task(self.search(query, page=page))
-            for page in range(1, math.ceil(count / PAGE_SIZE) + 1)
+            for page in range(1, math.ceil(count / self.PAGE_SIZE) + 1)
         ]
 
         results = await asyncio.gather(*tasks)

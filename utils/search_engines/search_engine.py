@@ -2,7 +2,7 @@
 
 import sys
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Tuple
 
 import aiohttp
 
@@ -15,6 +15,7 @@ else:
 class SearchEngine(ABC):
     """The base class for interacting with an IoT search engine."""
 
+    PAGE_SIZE: ClassVar[int]
     _session: aiohttp.ClientSession
 
     async def __aenter__(self) -> Self:
