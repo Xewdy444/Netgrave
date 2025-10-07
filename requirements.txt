@@ -1,4 +1,4 @@
-aiohttp==3.12.15
+aiohttp==3.13.0
 binary2strings==0.1.13
 pydantic==2.11.10
 rich==14.1.0
