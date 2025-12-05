@@ -68,7 +68,7 @@ class ZoomEye(SearchEngine):
             The response from ZoomEye. Returns None if the page was not found.
         """
         async with self._session.get(
-            "https://api.zoomeye.hk/host/search", params={"query": query, "page": page}
+            "https://api.zoomeye.ai/host/search", params={"query": query, "page": page}
         ) as response:
             if response.status == 403:
                 return None
