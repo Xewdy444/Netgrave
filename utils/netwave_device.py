@@ -364,7 +364,7 @@ class NetwaveDevice:
         return None
 
     async def get_credentials(
-        self, device_id: Optional[str] = None, *, timeout: int = 300
+        self, *, device_id: Optional[str] = None, timeout: int = 300
     ) -> Optional[DeviceCredentials]:
         """
         Get the credentials of the Netwave IP camera.
