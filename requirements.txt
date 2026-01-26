@@ -1,7 +1,7 @@
 aiohttp==3.13.3
 binary2strings==0.1.13
 pydantic==2.12.5
-rich==14.2.0
+rich==14.3.1
 rich_argparse==1.7.2
 tenacity==9.1.2
 typing_extensions==4.15.0; python_version < "3.11"
