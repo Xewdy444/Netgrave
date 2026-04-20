@@ -1,6 +1,6 @@
 aiohttp==3.13.5
 binary2strings==0.1.13
-pydantic==2.13.1
+pydantic==2.13.2
 rich==15.0.0
 rich_argparse==1.7.2
 tenacity==9.1.2
