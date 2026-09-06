@@ -50,9 +50,8 @@ async def main() -> None:
     source_group.add_argument(
         "--censys",
         action="store_true",
-        help="Retrieve hosts from the Censys API "
-        "using the API ID and secret specified with the CENSYS_API_ID and "
-        "CENSYS_API_SECRET environment variables",
+        help="Retrieve hosts from the Censys Platform API using the personal access "
+        "token specified with the CENSYS_PERSONAL_ACCESS_TOKEN environment variable",
     )
 
     source_group.add_argument(
@@ -121,10 +120,9 @@ async def main() -> None:
 
         async with Censys(args.censys) as censys:
             hosts = await censys.get_hosts(
-                'services.http.response.headers.Server: "Netwave IP Camera"',
+                "host.services.endpoints.http.headers:"
+                '(key="Server" and value:"Netwave IP Camera")',
                 count=args.number,
-                service_filter=lambda service: service["extended_service_name"]
-                == "HTTP",
             )
     elif args.shodan is not None:
         logger.info("Retrieving hosts from Shodan...")

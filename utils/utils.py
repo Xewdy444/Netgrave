@@ -59,16 +59,17 @@ class Args(BaseModel):
         }
 
         if namespace.censys:
-            censys_api_id = os.getenv("CENSYS_API_ID")
-            censys_api_secret = os.getenv("CENSYS_API_SECRET")
+            censys_token = os.getenv("CENSYS_PERSONAL_ACCESS_TOKEN")
 
-            if censys_api_id is None or censys_api_secret is None:
+            if censys_token is None:
                 raise ValueError(
-                    "You must set the CENSYS_API_ID and CENSYS_API_SECRET "
-                    "environment variables."
+                    "You must set the CENSYS_PERSONAL_ACCESS_TOKEN "
+                    "environment variable."
                 )
 
-            new_args["censys"] = CensysCredentials(censys_api_id, censys_api_secret)
+            new_args["censys"] = CensysCredentials(
+                censys_token, os.getenv("CENSYS_ORGANIZATION_ID")
+            )
 
         if namespace.shodan:
             shodan_api_key = os.getenv("SHODAN_API_KEY")

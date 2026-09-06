@@ -41,11 +41,13 @@ This tool supports two different ways to specify hosts to check for the vulnerab
 
 This tool supports retrieving hosts from Censys, Shodan, and ZoomEye to check for the vulnerability.
 
-| IoT Search Engine | Argument    | Required Environment Variables       |
-| ----------------- | ----------- | ------------------------------------ |
-| Censys            | `--censys`  | `CENSYS_API_ID`, `CENSYS_API_SECRET` |
-| Shodan            | `--shodan`  | `SHODAN_API_KEY`                     |
-| ZoomEye           | `--zoomeye` | `ZOOMEYE_API_KEY`                    |
+| IoT Search Engine | Argument    | Required Environment Variables |
+| ----------------- | ----------- | ------------------------------ |
+| Censys            | `--censys`  | `CENSYS_PERSONAL_ACCESS_TOKEN` |
+| Shodan            | `--shodan`  | `SHODAN_API_KEY`               |
+| ZoomEye           | `--zoomeye` | `ZOOMEYE_API_KEY`              |
+
+Censys uses the Platform API. Create a personal access token at [platform.censys.io](https://platform.censys.io); set `CENSYS_ORGANIZATION_ID` as well to bill the search against an organization instead of your free wallet. Note that the Platform search endpoint requires a paid plan, as free accounts are limited to the lookup endpoints.
 
 ## Installation
 
@@ -62,7 +64,7 @@ Options:
   -h, --help            show this help message and exit
   --host HOST           A host to check, can be specified multiple times
   -f, --file FILE       A file containing the hosts to check
-  --censys              Retrieve hosts from the Censys API using the API ID and secret specified with the CENSYS_API_ID and CENSYS_API_SECRET environment variables
+  --censys              Retrieve hosts from the Censys Platform API using the personal access token specified with the CENSYS_PERSONAL_ACCESS_TOKEN environment variable
   --shodan              Retrieve hosts from the Shodan API using the API key specified with the SHODAN_API_KEY environment variable
   --zoomeye             Retrieve hosts from the ZoomEye API using the API key specified with the ZOOMEYE_API_KEY environment variable
   -n, --number NUMBER   The number of hosts to retrieve from the IoT search engine, by default 100

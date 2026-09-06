@@ -1,7 +1,7 @@
-"""A module for interacting with the Censys API."""
+"""A module for interacting with the Censys Platform API."""
 
 from dataclasses import dataclass
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, TypedDict
+from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 import aiohttp
 
@@ -12,29 +12,20 @@ from .search_engine import SearchEngine
 class CensysCredentials:
     """A class for representing Censys credentials."""
 
-    api_id: str
-    api_secret: str
+    personal_access_token: str
+    organization_id: Optional[str] = None
 
     def __str__(self) -> str:
-        return f"{self.api_id}:{self.api_secret}"
+        return self.personal_access_token
 
 
 class CensysError(Exception):
     """An exception raised when an error occurs with the Censys API."""
 
 
-class Service(TypedDict):
-    """A dictionary of service information."""
-
-    extended_service_name: str
-    service_name: str
-    transport_protocol: str
-    port: int
-
-
 class Censys(SearchEngine):
     """
-    A class for interacting with the Censys API.
+    A class for interacting with the Censys Platform API.
 
     Parameters
     ----------
@@ -48,70 +39,75 @@ class Censys(SearchEngine):
         self._credentials = credentials
 
         self._session = aiohttp.ClientSession(
-            auth=aiohttp.BasicAuth(credentials.api_id, credentials.api_secret)
+            headers={"Authorization": f"Bearer {credentials.personal_access_token}"}
         )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(credentials={self._credentials!r})"
 
     async def search(
-        self, query: str, *, cursor: Optional[str] = None, per_page: int = PAGE_SIZE
+        self,
+        query: str,
+        *,
+        page_token: Optional[str] = None,
+        page_size: int = PAGE_SIZE,
     ) -> Optional[Dict[str, Any]]:
         """
-        Search the Censys API for the given query.
+        Search the Censys Platform API for the given query.
 
         Parameters
         ----------
         query : str
-            The query to search for.
-        cursor : Optional[str], optional
-            The cursor token to use, by default None.
-        per_page : int, optional
+            The Censys Query Language query to search for.
+        page_token : Optional[str], optional
+            The token of the page to retrieve, by default None.
+        page_size : int, optional
             The number of results per page, by default PAGE_SIZE.
+            The API caps this at 100.
 
         Returns
         -------
         Optional[Dict[str, Any]]
-            The response from Censys. Returns None if the query is invalid.
+            The result object from Censys. Returns None if the query is invalid.
         """
-        params = {"q": query, "per_page": per_page}
+        body: Dict[str, Any] = {"query": query, "page_size": page_size}
+        params: Dict[str, str] = {}
 
-        if cursor is not None:
-            params["cursor"] = cursor
+        if page_token is not None:
+            body["page_token"] = page_token
 
-        async with self._session.get(
-            "https://search.censys.io/api/v2/hosts/search", params=params
+        if self._credentials.organization_id is not None:
+            params["organization_id"] = self._credentials.organization_id
+
+        async with self._session.post(
+            "https://api.platform.censys.io/v3/global/search/query",
+            json=body,
+            params=params,
         ) as response:
             if response.status == 422:
                 return None
 
             response_json = await response.json()
 
-        if "error" in response_json:
-            raise CensysError(response_json["error"])
+            if response.status != 200:
+                raise CensysError(
+                    response_json.get("detail")
+                    or response_json.get("error")
+                    or f"HTTP {response.status}"
+                )
 
-        return response_json
+        return response_json.get("result")
 
-    async def get_hosts(
-        self,
-        query: str,
-        *,
-        count: int = 100,
-        service_filter: Optional[Callable[[Service], bool]] = None,
-    ) -> List[Tuple[str, int]]:
+    async def get_hosts(self, query: str, *, count: int = 100) -> List[Tuple[str, int]]:
         """
         Get hosts from Censys that match the given query.
 
         Parameters
         ----------
         query : str
-            The query to search for.
+            The Censys Query Language query to search for.
         count : int, optional
             The number of hosts to retrieve, by default 100.
-        service_filter : Optional[Callable[[Service], bool]], optional
-            A function to filter the services, by default None.
-            The function should return True if the service should be included
-            in the results.
 
         Returns
         -------
@@ -119,33 +115,38 @@ class Censys(SearchEngine):
             The list of hosts.
         """
         hosts: Set[Tuple[str, int]] = set()
-        cursor: Optional[str] = None
+        page_token: Optional[str] = None
 
         while len(hosts) < count:
-            per_page = (
-                min(count - len(hosts), self.PAGE_SIZE)
-                if service_filter is None
-                else self.PAGE_SIZE
+            result = await self.search(
+                query,
+                page_token=page_token,
+                page_size=min(count - len(hosts), self.PAGE_SIZE),
             )
 
-            response = await self.search(query, cursor=cursor, per_page=per_page)
-
-            if response is None:
+            if result is None:
                 break
 
-            for host in response["result"]["hits"]:
-                for service in host["services"]:
-                    if service_filter is not None and not service_filter(service):
-                        continue
+            for hit in result.get("hits") or []:
+                host = hit.get("host_v1")
 
-                    hosts.add((host["ip"], service["port"]))
+                if host is None:
+                    continue
+
+                ip_address = host["resource"].get("ip")
+
+                if ip_address is None:
+                    continue
+
+                for service in host.get("matched_services") or []:
+                    hosts.add((ip_address, service["port"]))
 
                     if len(hosts) == count:
                         return list(hosts)
 
-            cursor = response["result"]["links"]["next"]
+            page_token = result.get("next_page_token")
 
-            if not cursor:
+            if not page_token:
                 break
 
         return list(hosts)
