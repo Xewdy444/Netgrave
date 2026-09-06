@@ -1,16 +1,33 @@
-# Netgrave 
+# Netgrave
+
 A tool for retrieving login credentials from Netwave IP cameras using a memory dump vulnerability (CVE-2018-17240). This project was inspired by [expcamera](https://github.com/vanpersiexp/expcamera) and offers performance and efficiency improvements. This tool works for all platforms as it does not use any Linux CLI tools through shell commands like expcamera does.
 
 ## CVE-2018-17240
-On Linux systems, `/proc/kcore` is a virtual file that provides a direct mapping to the system's physical memory, allowing read access to the entire kernel's virtual memory space. Some Netwave IP cameras expose this file publicly via its web server, allowing unauthenticated users to retrieve the memory dump of the device, exposing sensitive information such as login credentials.
+
+On Linux systems, `/proc/kcore` is a virtual file that exposes system memory as an ELF core image. These cameras run uClinux on an MMU-less ARM7 core, so there is a single flat address space - the dump contains the camera application's memory alongside the kernel's, including the configuration blob it holds in a global.
+
+It is reachable because the web server has an unauthenticated arbitrary file read: the request handler strips exactly one leading slash and calls `fopen()` with no traversal filtering, serving the result as root. `//proc/kcore` therefore resolves to `/proc/kcore`, which is why the request path carries a leading double slash.
 
 ---
 
-This tool will first attempt to find the device ID in the memory dump. Once this has been found, it likely means that the credentials are nearby and will begin searching for them.
+### How the Credentials Are Recovered
+
+The configuration blob has a fixed layout, so the credentials can be read straight out of it:
+
+| Offset | Field                                                         |
+| ------ | ------------------------------------------------------------- |
+| `0x00` | `uint32` magic, always `0x440C9ABD`                           |
+| `0x04` | `uint32` checksum                                             |
+| `0x08` | `uint32` length                                               |
+| `0x0C` | `char device_id[13]` 12 uppercase hex characters plus a NUL   |
+| `0x36` | `struct { char name[13]; char pwd[13]; uint8 pri; } users[8]` |
+
+The tool streams `/proc/kcore` and searches each chunk for the magic. Once found, it returns the highest privilege account from the users table.
 
 ## Host Options
 
 ### Specifying Hosts
+
 This tool supports two different ways to specify hosts to check for the vulnerability. The hosts must be in the `ip:port` format.
 
 | Argument | Description                                      |
@@ -21,6 +38,7 @@ This tool supports two different ways to specify hosts to check for the vulnerab
 ---
 
 ### Retrieving Hosts
+
 This tool supports retrieving hosts from Censys, Shodan, and ZoomEye to check for the vulnerability.
 
 | IoT Search Engine | Argument    | Required Environment Variables       |
@@ -30,9 +48,11 @@ This tool supports retrieving hosts from Censys, Shodan, and ZoomEye to check fo
 | ZoomEye           | `--zoomeye` | `ZOOMEYE_API_KEY`                    |
 
 ## Installation
+
     $ pip install -r requirements.txt
 
 ## Usage
+
 ```
 Usage: main.py [-h] (--host HOST | -f FILE | --censys | --shodan | --zoomeye) [-n NUMBER] [-c CONCURRENT] [-t TIMEOUT] [-o OUTPUT]
 
@@ -54,4 +74,5 @@ Options:
 ```
 
 ## Disclaimer
+
 This tool is for educational purposes only. The contributors of this project will not be held liable for any damages or legal issues that may arise from the use of this tool. Use at your own risk.
