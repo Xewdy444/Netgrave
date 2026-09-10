@@ -136,7 +136,7 @@ async def main() -> None:
 
         async with ZoomEye(args.zoomeye) as zoomeye:
             hosts = await zoomeye.get_hosts(
-                'app:"Netwave IP Camera"', count=args.number
+                'app="Netwave IP Camera"', count=args.number
             )
 
     if not hosts:

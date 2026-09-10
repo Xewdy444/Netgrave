@@ -1,6 +1,7 @@
 """A module for interacting with the ZoomEye API."""
 
-import asyncio
+import base64
+import logging
 import math
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
@@ -8,6 +9,8 @@ from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 import aiohttp
 
 from .search_engine import SearchEngine
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -34,7 +37,7 @@ class ZoomEye(SearchEngine):
         The credentials to use for the API.
     """
 
-    PAGE_SIZE: ClassVar[int] = 10
+    PAGE_SIZE: ClassVar[int] = 1000
 
     def __init__(self, credentials: ZoomEyeCredentials) -> None:
         self._credentials = credentials
@@ -42,7 +45,7 @@ class ZoomEye(SearchEngine):
         self._session = aiohttp.ClientSession(
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 "
                 "Safari/537.36",
                 "API-KEY": str(credentials),
             }
@@ -51,7 +54,9 @@ class ZoomEye(SearchEngine):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(credentials={self._credentials!r})"
 
-    async def search(self, query: str, *, page: int = 1) -> Optional[Dict[str, Any]]:
+    async def search(
+        self, query: str, *, page: int = 1, page_size: int = PAGE_SIZE
+    ) -> Optional[Dict[str, Any]]:
         """
         Search the ZoomEye API for the given query.
 
@@ -61,22 +66,33 @@ class ZoomEye(SearchEngine):
             The query to search for.
         page : int, optional
             The page to search on, by default 1.
+        page_size : int, optional
+            The number of results per page, by default PAGE_SIZE.
 
         Returns
         -------
         Optional[Dict[str, Any]]
-            The response from ZoomEye. Returns None if the page was not found.
+            The response from ZoomEye. Returns None if the account
+            has run out of resource credits.
         """
-        async with self._session.get(
-            "https://api.zoomeye.ai/host/search", params={"query": query, "page": page}
+        async with self._session.post(
+            "https://api.zoomeye.ai/v2/search",
+            json={
+                "qbase64": base64.b64encode(query.encode()).decode(),
+                "page": page,
+                "pagesize": page_size,
+            },
         ) as response:
-            if response.status == 403:
+            if response.status == 402:
+                logger.warning("ZoomEye resource credits are insufficient.")
                 return None
 
             response_json = await response.json()
 
-        if "error" in response_json:
-            raise ZoomEyeError(response_json["error"])
+            if response_json.get("code") != 60000:
+                raise ZoomEyeError(
+                    response_json.get("message") or f"HTTP {response.status}"
+                )
 
         return response_json
 
@@ -96,20 +112,17 @@ class ZoomEye(SearchEngine):
         List[Tuple[str, int]]
             The list of hosts.
         """
-        tasks = [
-            asyncio.create_task(self.search(query, page=page))
-            for page in range(1, math.ceil(count / self.PAGE_SIZE) + 1)
-        ]
-
-        results = await asyncio.gather(*tasks)
         hosts: Set[Tuple[str, int]] = set()
+        page_size = max(min(count, self.PAGE_SIZE), 1)
 
-        for result in results:
-            if result is None:
-                continue
+        for page in range(1, math.ceil(count / page_size) + 1):
+            result = await self.search(query, page=page, page_size=page_size)
 
-            for host in result["matches"]:
-                hosts.add((host["ip"], host["portinfo"]["port"]))
+            if result is None or not result["data"]:
+                break
+
+            for host in result["data"]:
+                hosts.add((host["ip"], host["port"]))
 
                 if len(hosts) == count:
                     return list(hosts)
