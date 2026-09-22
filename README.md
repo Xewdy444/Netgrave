@@ -1,3 +1,5 @@
+
+
 # Netgrave
 
 A tool for retrieving login credentials from Netwave IP cameras using a memory dump vulnerability (CVE-2018-17240). This project was inspired by [expcamera](https://github.com/vanpersiexp/expcamera) and offers performance and efficiency improvements. This tool works for all platforms as it does not use any Linux CLI tools through shell commands like expcamera does.
@@ -33,7 +35,7 @@ This tool supports two different ways to specify hosts to check for the vulnerab
 | Argument | Description                                      |
 | -------- | ------------------------------------------------ |
 | `--host` | A host to check, can be specified multiple times |
-| `--file` | A file containing a list of hosts check          |
+| `--file` | A file containing a list of hosts to check          |
 
 ---
 
