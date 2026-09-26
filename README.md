@@ -33,7 +33,7 @@ This tool supports two different ways to specify hosts to check for the vulnerab
 | Argument | Description                                      |
 | -------- | ------------------------------------------------ |
 | `--host` | A host to check, can be specified multiple times |
-| `--file` | A file containing a list of hosts check          |
+| `--file` | A file containing a list of hosts to check       |
 
 ---
 
