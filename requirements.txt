@@ -1,5 +1,5 @@
 aiohttp==3.14.5
-pydantic==2.14.0
+pydantic==2.14.1
 rich==15.0.0
 rich_argparse==1.8.0
 typing_extensions==4.16.0; python_version < "3.11"
